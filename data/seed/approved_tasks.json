@@ -1,0 +1,54 @@
+[
+  {
+    "id": "task-001",
+    "qualification_id": "qual-001",
+    "code": "ELE-L2-PT-01",
+    "title": "Wire a single-phase consumer unit",
+    "description": "Candidate must correctly wire a 8-way consumer unit with RCD protection, label all circuits, and pass an insulation resistance test.",
+    "estimated_duration_minutes": 90,
+    "required_tools": ["Screwdrivers", "Wire strippers", "Multimeter", "Insulation tester"],
+    "assessment_criteria": [
+      "All live, neutral, and earth conductors correctly terminated",
+      "RCD trips within rated time",
+      "No dead shorts on any circuit",
+      "Labelling legible and accurate",
+      "Insulation resistance >= 1 MΩ"
+    ],
+    "max_score": 100,
+    "pass_score": 70
+  },
+  {
+    "id": "task-002",
+    "qualification_id": "qual-002",
+    "code": "PLM-L2-PT-01",
+    "title": "Install a basin and waste trap",
+    "description": "Candidate installs a wall-hung washbasin, connects hot and cold supplies, fits a bottle trap, and tests for leaks at 0.5 bar.",
+    "estimated_duration_minutes": 60,
+    "required_tools": ["Basin wrench", "PTFE tape", "Adjustable spanner", "Level"],
+    "assessment_criteria": [
+      "Basin level within 2mm across width",
+      "Supply connections leak-free at 0.5 bar",
+      "Waste drains within 30 seconds",
+      "Trap accessible for cleaning"
+    ],
+    "max_score": 100,
+    "pass_score": 70
+  },
+  {
+    "id": "task-003",
+    "qualification_id": "qual-003",
+    "code": "CAR-L3-PT-01",
+    "title": "Construct a mortise-and-tenon joint",
+    "description": "Candidate produces a through mortise-and-tenon joint from given timber, achieving a snug fit with less than 0.5mm gap.",
+    "estimated_duration_minutes": 120,
+    "required_tools": ["Mortise chisel set", "Marking gauge", "Mallet", "Try square"],
+    "assessment_criteria": [
+      "Joint fits without gaps >0.5mm",
+      "Shoulders square to within 0.5 degrees",
+      "Surfaces planed smooth",
+      "No tear-out on face side"
+    ],
+    "max_score": 100,
+    "pass_score": 75
+  }
+]

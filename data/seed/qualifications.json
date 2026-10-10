@@ -1,0 +1,57 @@
+[
+  {
+    "id": "qual-001",
+    "code": "ELE-L2",
+    "title": "Electrical Wiring — Level 2",
+    "trade": "Electrical",
+    "issuing_body": "National Council for Vocational Training (NCVT)",
+    "level": 2,
+    "duration_hours": 120,
+    "description": "Competency in residential and light-commercial wiring, conduit work, and fault finding.",
+    "skill_areas": ["Cable Laying", "Panel Wiring", "Earthing & Bonding", "Fault Diagnosis"]
+  },
+  {
+    "id": "qual-002",
+    "code": "PLM-L2",
+    "title": "Plumbing & Pipe Fitting — Level 2",
+    "trade": "Plumbing",
+    "issuing_body": "NCVT",
+    "level": 2,
+    "duration_hours": 100,
+    "description": "Installation and maintenance of domestic water supply and drainage systems.",
+    "skill_areas": ["Pipe Joining", "Fixture Installation", "Leak Testing", "Drainage"]
+  },
+  {
+    "id": "qual-003",
+    "code": "CAR-L3",
+    "title": "Carpentry & Joinery — Level 3",
+    "trade": "Carpentry",
+    "issuing_body": "NCVT",
+    "level": 3,
+    "duration_hours": 160,
+    "description": "Advanced framing, cabinetry, and finishing techniques.",
+    "skill_areas": ["Framing", "Cabinet Making", "Wood Finishing", "Structural Joinery"]
+  },
+  {
+    "id": "qual-004",
+    "code": "MAS-L2",
+    "title": "Masonry & Plastering — Level 2",
+    "trade": "Masonry",
+    "issuing_body": "NCVT",
+    "level": 2,
+    "duration_hours": 90,
+    "description": "Brickwork, blockwork, and interior/exterior plastering.",
+    "skill_areas": ["Brickwork", "Blockwork", "Plastering", "Tiling"]
+  },
+  {
+    "id": "qual-005",
+    "code": "HVAC-L3",
+    "title": "HVAC Installation & Servicing — Level 3",
+    "trade": "HVAC",
+    "issuing_body": "NCVT",
+    "level": 3,
+    "duration_hours": 200,
+    "description": "Installation, commissioning, and maintenance of heating, ventilation, and air-conditioning systems.",
+    "skill_areas": ["Refrigerant Handling", "Duct Installation", "Controls & Commissioning", "Maintenance"]
+  }
+]
