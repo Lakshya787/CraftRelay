@@ -1,0 +1,28 @@
+﻿# Normalise line endings on commit.
+* text=auto
+
+# Python
+*.py text eol=lf
+*.pyi text eol=lf
+
+# JavaScript / TypeScript
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+
+# Docs / Config
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.apk binary
+*.aab binary
