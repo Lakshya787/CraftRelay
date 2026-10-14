@@ -1,25 +1,28 @@
 /**
  * app/_layout.tsx — Root layout for Expo Router.
  *
- * This is the top-level layout that wraps all routes.
- * Future: add auth context, TanStack Query provider, theme provider here.
+ * Part 2: Adds AuthProvider context around all routes.
+ * Part 3: Will add auth redirect logic here.
  */
 
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { AuthProvider } from "../context/AuthContext";
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="light" />
+    <AuthProvider>
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#0F172A" },
-          headerTintColor: "#F8FAFC",
-          headerTitleStyle: { fontWeight: "700" },
-          contentStyle: { backgroundColor: "#0F172A" },
+          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerTintColor: "#0F172A",
+          headerTitleStyle: { fontWeight: "700", fontSize: 17 },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: "#F7F9FC" },
+          headerBackTitle: "Back",
         }}
       />
-    </>
+    </AuthProvider>
   );
 }

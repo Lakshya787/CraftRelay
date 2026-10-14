@@ -1,43 +1,104 @@
 /**
- * app/index.tsx — Landing / splash screen.
+ * app/index.tsx — Landing screen with onboarding slides.
  *
- * Part 1: Minimal placeholder that confirms the app boots.
- * Part 3: This will be replaced with the auth flow.
+ * Part 2: Full landing with onboarding carousel and role selection.
  */
 
-import { StyleSheet, Text, View, Pressable } from "react-native";
-import { Link } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Dimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
+import { router } from "expo-router";
+import { Colors } from "../constants/colors";
+import { Spacing, Radius } from "../constants/spacing";
+import { ONBOARDING_SLIDES } from "../data/mockData";
+import { Button } from "../components/ui/Button";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function LandingScreen() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+
+  function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    setActiveSlide(idx);
+  }
+
+  function handleNext() {
+    if (activeSlide < ONBOARDING_SLIDES.length - 1) {
+      scrollRef.current?.scrollTo({ x: (activeSlide + 1) * SCREEN_WIDTH, animated: true });
+    } else {
+      router.push("/login");
+    }
+  }
+
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
-
-      {/* Logo mark */}
-      <View style={styles.logoContainer}>
-        <Text style={styles.logoMark}>CR</Text>
+      {/* Logo */}
+      <View style={styles.logoRow}>
+        <View style={styles.logoMark}>
+          <Text style={styles.logoText}>CR</Text>
+        </View>
+        <Text style={styles.logoName}>CraftRelay</Text>
       </View>
 
-      {/* App title */}
-      <Text style={styles.title}>CraftRelay</Text>
-      <Text style={styles.tagline}>
-        Verified skills.{"\n"}Trusted connections.
-      </Text>
+      {/* Carousel */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        style={styles.carousel}
+      >
+        {ONBOARDING_SLIDES.map((slide) => (
+          <View key={slide.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
+            <Text style={styles.slideIcon}>{slide.icon}</Text>
+            <Text style={styles.slideTitle}>{slide.title}</Text>
+            <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
+          </View>
+        ))}
+      </ScrollView>
 
-      {/* Status badge — confirms Part 1 foundation */}
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>⚡ Foundation Ready — Part 1</Text>
+      {/* Dots */}
+      <View style={styles.dots}>
+        {ONBOARDING_SLIDES.map((_, i) => (
+          <View
+            key={i}
+            style={[styles.dot, activeSlide === i && styles.dotActive]}
+          />
+        ))}
       </View>
 
-      {/* Placeholder CTA — will navigate to auth in Part 3 */}
-      <Pressable style={styles.ctaButton}>
-        <Text style={styles.ctaText}>Get Started</Text>
-      </Pressable>
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Button
+          label={activeSlide === ONBOARDING_SLIDES.length - 1 ? "Get Started" : "Next"}
+          variant="primary"
+          size="lg"
+          fullWidth
+          onPress={handleNext}
+        />
+        <Pressable
+          onPress={() => router.push("/login")}
+          accessibilityRole="button"
+        >
+          <Text style={styles.skipText}>
+            Already have an account?{" "}
+            <Text style={styles.skipLink}>Sign in</Text>
+          </Text>
+        </Pressable>
+      </View>
 
-      <Text style={styles.footnote}>
-        Smart India Hackathon · SIH 2025
-      </Text>
+      <Text style={styles.footer}>Smart India Hackathon · SIH 2025</Text>
     </View>
   );
 }
@@ -45,81 +106,97 @@ export default function LandingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0F172A",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
+    backgroundColor: Colors.background,
+    paddingTop: Spacing["3xl"],
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: "#3B82F6",
+  logoRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing["2xl"],
+    marginBottom: Spacing.xl,
   },
   logoMark: {
-    fontSize: 28,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: {
+    color: Colors.white,
     fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: "#F8FAFC",
-    letterSpacing: -0.5,
-    marginBottom: 8,
-  },
-  tagline: {
-    fontSize: 16,
-    color: "#94A3B8",
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  badge: {
-    backgroundColor: "#1E3A5F",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 40,
-    borderWidth: 1,
-    borderColor: "#3B82F6",
-  },
-  badgeText: {
-    color: "#60A5FA",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  ctaButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 14,
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    marginBottom: 24,
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  ctaText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
     letterSpacing: 0.5,
   },
-  footnote: {
-    color: "#475569",
-    fontSize: 12,
+  logoName: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  carousel: {
+    flexGrow: 0,
+  },
+  slide: {
+    paddingHorizontal: Spacing["2xl"],
+    paddingVertical: Spacing["2xl"],
+    alignItems: "center",
+    gap: Spacing.base,
+  },
+  slideIcon: {
+    fontSize: 72,
+    marginBottom: Spacing.base,
+  },
+  slideTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    textAlign: "center",
+    lineHeight: 36,
+  },
+  slideSubtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    marginVertical: Spacing.xl,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.border,
+  },
+  dotActive: {
+    width: 24,
+    backgroundColor: Colors.primary,
+  },
+  actions: {
+    paddingHorizontal: Spacing["2xl"],
+    gap: Spacing.base,
+    alignItems: "center",
+  },
+  skipText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  skipLink: {
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  footer: {
     position: "absolute",
-    bottom: 48,
+    bottom: Spacing["2xl"],
+    alignSelf: "center",
+    fontSize: 11,
+    color: Colors.textMuted,
   },
 });
