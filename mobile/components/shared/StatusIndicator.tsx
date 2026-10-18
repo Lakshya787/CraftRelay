@@ -6,9 +6,9 @@ import React from "react";
 import { View, Text, StyleSheet, type ViewStyle } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
-import type { AssessmentStatus, ServiceRequestStatus, QualificationStatus } from "../../types/domain";
+import type { AssessmentStatus, ServiceRequestStatus, QualificationStatus, EvidenceStatus } from "../../types/domain";
 
-type StatusType = AssessmentStatus | ServiceRequestStatus | QualificationStatus;
+type StatusType = AssessmentStatus | ServiceRequestStatus | QualificationStatus | EvidenceStatus;
 
 interface StatusIndicatorProps {
   status: StatusType;
@@ -34,6 +34,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   approved: { label: "Approved", color: Colors.success, bg: Colors.successBg },
   rejected: { label: "Rejected", color: Colors.error, bg: Colors.errorBg },
   expired: { label: "Expired", color: Colors.textMuted, bg: Colors.backgroundMuted },
+  // Evidence statuses
+  draft: { label: "Draft", color: Colors.textMuted, bg: Colors.backgroundMuted },
 };
 
 export function StatusIndicator({ status, style }: StatusIndicatorProps) {

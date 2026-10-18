@@ -2,9 +2,9 @@
  * app/(worker)/_layout.tsx — Worker tab navigator.
  */
 
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Colors } from "../../constants/colors";
-import { Text } from "react-native";
+import { Text, Pressable } from "react-native";
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
@@ -73,6 +73,24 @@ export default function WorkerLayout() {
           tabBarLabel: "Jobs",
           tabBarIcon: ({ focused }) => <TabIcon emoji="💼" focused={focused} />,
           headerTitle: "Service Requests",
+        }}
+      />
+      <Tabs.Screen
+        name="evidence-submit"
+        options={{
+          title: "Submit Evidence",
+          headerTitle: "Submit Evidence",
+          href: null, // hidden from tab bar
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={{ paddingLeft: 16, paddingRight: 8, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Text style={{ fontSize: 15, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
+            </Pressable>
+          ),
         }}
       />
     </Tabs>

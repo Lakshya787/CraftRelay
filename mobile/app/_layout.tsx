@@ -22,7 +22,15 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: "#F7F9FC" },
           headerBackTitle: "Back",
         }}
-      />
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="(worker)" options={{ headerShown: false }} />
+        <Stack.Screen name="(assessor)" options={{ headerShown: false }} />
+        <Stack.Screen name="(customer)" options={{ headerShown: false }} />
+        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+      </Stack>
     </AuthProvider>
   );
 }

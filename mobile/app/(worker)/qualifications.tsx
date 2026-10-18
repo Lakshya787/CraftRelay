@@ -141,7 +141,7 @@ export default function QualificationsScreen() {
                         label="Submit Evidence"
                         variant="primary"
                         size="md"
-                        onPress={() => setActiveTab("Evidence")}
+                        onPress={() => router.push("/(worker)/evidence-submit")}
                       />
                     </View>
                   ) : null}
@@ -157,7 +157,7 @@ export default function QualificationsScreen() {
             label="+ Add Evidence"
             variant="primary"
             size="md"
-            onPress={() => {}}
+            onPress={() => router.push("/(worker)/evidence-submit")}
             style={styles.addEvidenceBtn}
           />
 
