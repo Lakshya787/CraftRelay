@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     # ── Logging ───────────────────────────────────────────────────────────────
     log_level: str = "DEBUG"
 
+    # ── File storage ──────────────────────────────────────────────────────────
+    # 'local' for dev; replace with 'gcs' or 's3' for production
+    storage_backend: str = "local"
+    # Directory for locally-stored evidence files (outside any public dir)
+    evidence_storage_dir: str = "./evidence_files"
+    # Maximum evidence file size in bytes (default 15 MB)
+    max_evidence_file_bytes: int = 15 * 1024 * 1024
+
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

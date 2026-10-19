@@ -18,9 +18,11 @@ This means:
 from __future__ import annotations
 
 import uuid
+from datetime import date
 
 from sqlalchemy import (
     Boolean,
+    Date,
     ForeignKey,
     Integer,
     String,
@@ -67,6 +69,14 @@ class Qualification(Base, TimestampMixin):
 
     # Current published version number (incremented on each snapshot)
     current_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    # ── Catalogue metadata ────────────────────────────────────────────────────
+    # URL to the authoritative source document (e.g. NCVT circular, gazette)
+    source_url: Mapped[str | None] = mapped_column(String(2048))
+    # Publication or effective date from the authoritative source
+    publication_date: Mapped[date | None] = mapped_column(Date)
+    # Rubric reference code from the source document (e.g. NOS code)
+    rubric_reference: Mapped[str | None] = mapped_column(String(100))
 
     # ── Relationships ─────────────────────────────────────────────────────────
     versions: Mapped[list[QualificationVersion]] = relationship(

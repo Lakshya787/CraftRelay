@@ -71,7 +71,7 @@ async def get_my_profile(
     current_user: CurrentUser,
     db: DbSession,
 ) -> SuccessResponse[WorkerProfileResponse]:
-    """Return the authenticated worker's own profile."""
+    """Return the authenticated worker's own profile, creating it if it does not yet exist."""
     if current_user.role != UserRole.worker:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -82,8 +82,13 @@ async def get_my_profile(
     )
     profile = result.scalar_one_or_none()
     if not profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Worker profile not found.")
+        # Auto-create empty profile (worker registered before auto-create was in place)
+        profile = WorkerProfile(user_id=current_user.id)
+        db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
     return SuccessResponse(data=WorkerProfileResponse.model_validate(profile))
+
 
 
 @router.patch(

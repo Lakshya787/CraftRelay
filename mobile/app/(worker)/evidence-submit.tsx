@@ -1,12 +1,22 @@
 /**
- * app/(worker)/evidence-submit.tsx — Evidence submission screen.
+ * app/(worker)/evidence-submit.tsx — Evidence submission screen (real API).
  *
- * Allows workers to attach evidence (photo/doc/cert/URL) to a specific
- * qualification criterion. No actual file upload — UI only for Part 2.
- * Part 3 will wire up the upload API.
+ * Features:
+ *  • Select photo from gallery (expo-image-picker)
+ *  • Take photo with camera where supported
+ *  • Enter title and description
+ *  • Choose evidence type and link to a criterion
+ *  • Upload via POST /evidence/upload (multipart) or POST /evidence/url
+ *  • Display upload progress and error states
+ *  • View previously submitted evidence
+ *  • Show review status per evidence item
+ *
+ * File validation:
+ *  • Size limit enforced on the client before upload (guard only — server re-validates)
+ *  • MIME type is sent as a hint only — server detects from magic bytes
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,32 +24,79 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
-import { MOCK_QUALIFICATIONS, MOCK_EVIDENCE } from "../../data/mockData";
-import type { EvidenceType } from "../../types/domain";
+import { useQualifications } from "../../hooks/useQualifications";
+import {
+  useMyEvidence,
+  useSubmitFileEvidence,
+  useSubmitURLEvidence,
+  EvidenceType,
+  EvidenceItemData,
+} from "../../hooks/useEvidence";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { Badge } from "../../components/ui/Badge";
-import { EvidenceCard } from "../../components/shared/EvidenceCard";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
-const EVIDENCE_TYPE_OPTIONS: Array<{ type: EvidenceType; label: string; icon: string; description: string }> = [
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const MAX_FILE_MB = 15;
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
+const EVIDENCE_TYPE_OPTIONS: Array<{
+  type: EvidenceType;
+  label: string;
+  icon: string;
+  description: string;
+}> = [
   { type: "photo", label: "Photo", icon: "📷", description: "Photograph of your work" },
   { type: "video", label: "Video", icon: "🎥", description: "Short video demonstration" },
   { type: "certificate", label: "Certificate", icon: "🏅", description: "Training or certification document" },
   { type: "document", label: "Document", icon: "📄", description: "PDF, report, or worksheet" },
-  { type: "url", label: "URL", icon: "🔗", description: "Link to external proof" },
+  { type: "other", label: "URL", icon: "🔗", description: "Link to external proof" },
 ];
+
+// ── Review status helpers ─────────────────────────────────────────────────────
+
+function reviewStatusLabel(status: string): string {
+  switch (status) {
+    case "pending": return "Pending Review";
+    case "under_review": return "Under Review";
+    case "accepted": return "Accepted ✓";
+    case "rejected": return "Rejected";
+    default: return status;
+  }
+}
+
+function reviewStatusVariant(status: string): "success" | "warning" | "error" | "default" {
+  switch (status) {
+    case "accepted": return "success";
+    case "under_review": return "warning";
+    case "rejected": return "error";
+    default: return "default";
+  }
+}
+
+function formatBytes(bytes: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ── Form state ────────────────────────────────────────────────────────────────
 
 interface FormState {
   title: string;
   description: string;
-  type: EvidenceType;
+  evidenceType: EvidenceType;
   url: string;
   criterionId: string;
 }
@@ -48,56 +105,154 @@ interface FormErrors {
   title?: string;
   description?: string;
   url?: string;
-  criterionId?: string;
+  file?: string;
 }
 
-export default function EvidenceSubmitScreen() {
-  const { assessmentId } = useLocalSearchParams<{ assessmentId?: string }>();
+interface SelectedFile {
+  uri: string;
+  name: string;
+  type: string;
+  sizeBytes?: number;
+}
 
-  // Use first qualification for demo
-  const qualification = MOCK_QUALIFICATIONS[0]!;
-  const existingEvidence = MOCK_EVIDENCE.filter((e) => e.workerId === "u1");
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function EvidenceSubmitScreen() {
+  const { qualifications, loading: qualsLoading } = useQualifications();
+  const { items: myEvidence, loading: evidenceLoading, refetch: refetchEvidence } =
+    useMyEvidence();
+  const { submit: submitFile, submitting: uploadingFile, error: uploadError } =
+    useSubmitFileEvidence();
+  const { submit: submitUrl, submitting: uploadingUrl, error: urlError } =
+    useSubmitURLEvidence();
 
   const [form, setForm] = useState<FormState>({
     title: "",
     description: "",
-    type: "photo",
+    evidenceType: "photo",
     url: "",
-    criterionId: qualification.criteria[0]?.id ?? "",
+    criterionId: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+
+  const isURLMode = form.evidenceType === "other";
+  const isSubmitting = uploadingFile || uploadingUrl;
 
   function update<K extends keyof FormState>(field: K) {
-    return (value: FormState[K]) =>
+    return (value: FormState[K]) => {
       setForm((f) => ({ ...f, [field]: value }));
+      setErrors((e) => ({ ...e, [field]: undefined }));
+    };
   }
+
+  // ── File selection ────────────────────────────────────────────────────────
+
+  async function pickFromGallery() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Gallery access is required to select a file."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes:
+        form.evidenceType === "video"
+          ? ImagePicker.MediaTypeOptions.Videos
+          : ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const sizeBytes = (asset as any).fileSize ?? undefined;
+      if (sizeBytes && sizeBytes > MAX_FILE_BYTES) {
+        setErrors((e) => ({
+          ...e,
+          file: `File is too large. Maximum allowed size is ${MAX_FILE_MB} MB.`,
+        }));
+        return;
+      }
+      setSelectedFile({
+        uri: asset.uri,
+        name: asset.fileName ?? `evidence_${Date.now()}.jpg`,
+        type: asset.mimeType ?? "image/jpeg",
+        sizeBytes,
+      });
+      setErrors((e) => ({ ...e, file: undefined }));
+    }
+  }
+
+  async function takePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Camera access is required.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.85,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setSelectedFile({
+        uri: asset.uri,
+        name: `photo_${Date.now()}.jpg`,
+        type: "image/jpeg",
+        sizeBytes: (asset as any).fileSize,
+      });
+      setErrors((e) => ({ ...e, file: undefined }));
+    }
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────────
 
   function validate(): boolean {
     const e: FormErrors = {};
     if (!form.title.trim()) e.title = "Title is required";
-    else if (form.title.trim().length < 5) e.title = "Title must be at least 5 characters";
+    else if (form.title.trim().length < 3) e.title = "At least 3 characters";
+
     if (!form.description.trim()) e.description = "Description is required";
-    if (!form.criterionId) e.criterionId = "Please select a criterion";
-    if (form.type === "url" && !form.url.trim()) e.url = "URL is required for URL evidence";
+
+    if (isURLMode && !form.url.trim()) e.url = "URL is required";
+    if (!isURLMode && !selectedFile) e.file = "Please select a file";
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit() {
-    if (validate()) setShowConfirm(true);
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  async function handleSubmit() {
+    if (!validate()) return;
+    try {
+      if (isURLMode) {
+        await submitUrl({
+          title: form.title.trim(),
+          description: form.description.trim() || undefined,
+          url: form.url.trim(),
+          criterion_id: form.criterionId || undefined,
+        });
+      } else {
+        await submitFile({
+          file: selectedFile!,
+          title: form.title.trim(),
+          description: form.description.trim() || undefined,
+          evidence_type: form.evidenceType,
+          criterion_id: form.criterionId || undefined,
+        });
+      }
+      setSubmitted(true);
+      await refetchEvidence();
+    } catch (err: any) {
+      Alert.alert("Upload Failed", err.message ?? "Please try again.");
+    }
   }
 
-  function confirmSubmit() {
-    setShowConfirm(false);
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 1000);
-  }
+  // ── Success screen ────────────────────────────────────────────────────────
 
   if (submitted) {
     return (
@@ -105,9 +260,18 @@ export default function EvidenceSubmitScreen() {
         <Text style={styles.successIcon}>✅</Text>
         <Text style={styles.successTitle}>Evidence Submitted</Text>
         <Text style={styles.successMessage}>
-          Your evidence has been submitted for review. An assessor will evaluate
-          it and you will be notified of the outcome.
+          Your evidence has been submitted for review. An assessor will
+          evaluate it and you will be notified of the outcome.
         </Text>
+        <Button
+          label="Submit More Evidence"
+          variant="outline"
+          onPress={() => {
+            setSubmitted(false);
+            setForm({ title: "", description: "", evidenceType: "photo", url: "", criterionId: "" });
+            setSelectedFile(null);
+          }}
+        />
         <Button
           label="Back to Qualifications"
           variant="primary"
@@ -119,240 +283,290 @@ export default function EvidenceSubmitScreen() {
   }
 
   return (
-    <>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-        {/* Qualification context */}
-        <Card style={styles.contextCard}>
-          <Text style={styles.contextLabel}>Submitting for</Text>
-          <Text style={styles.contextTitle}>{qualification.title}</Text>
-          <Text style={styles.contextSub}>
-            {qualification.skill.name} · {qualification.level} · Issued by {qualification.issuedBy}
-          </Text>
-        </Card>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
 
-        {/* Step 1 — Select criterion */}
-        <View style={styles.section}>
-          <Text style={styles.stepLabel}>1. Select Criterion</Text>
-          {errors.criterionId ? (
-            <Text style={styles.fieldError}>{errors.criterionId}</Text>
-          ) : null}
+      {/* Step 1 — Qualification & criterion */}
+      <View style={styles.section}>
+        <Text style={styles.stepLabel}>1. Link to a Criterion (Optional)</Text>
+        {qualsLoading ? (
+          <ActivityIndicator color={Colors.primary} />
+        ) : (
           <View style={styles.criterionList}>
-            {qualification.criteria.map((c) => {
-              const selected = form.criterionId === c.id;
-              const evidenceForCriterion = existingEvidence.filter(
-                (e) => e.criterionId === c.id
-              );
-              return (
-                <Pressable
-                  key={c.id}
-                  style={[styles.criterionBtn, selected && styles.criterionBtnActive]}
-                  onPress={() => update("criterionId")(c.id)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                >
-                  <View style={styles.criterionHeader}>
-                    <View style={[styles.radioCircle, selected && styles.radioCircleActive]}>
-                      {selected ? <View style={styles.radioDot} /> : null}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.criterionTitle, selected && { color: Colors.primary }]}>
-                        {c.title}
-                      </Text>
-                      <Text style={styles.criterionDesc} numberOfLines={2}>
-                        {c.description}
-                      </Text>
-                    </View>
-                    <Badge label={`${c.weightage}%`} variant="default" size="sm" />
-                  </View>
-                  {evidenceForCriterion.length > 0 ? (
-                    <Text style={styles.existingCount}>
-                      {evidenceForCriterion.length} piece{evidenceForCriterion.length !== 1 ? "s" : ""} already submitted
-                    </Text>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Step 2 — Evidence type */}
-        <View style={styles.section}>
-          <Text style={styles.stepLabel}>2. Evidence Type</Text>
-          <View style={styles.typeGrid}>
-            {EVIDENCE_TYPE_OPTIONS.map(({ type, label, icon, description }) => {
-              const selected = form.type === type;
-              return (
-                <Pressable
-                  key={type}
-                  style={[styles.typeBtn, selected && styles.typeBtnActive]}
-                  onPress={() => update("type")(type)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                >
-                  <Text style={styles.typeIcon}>{icon}</Text>
-                  <Text style={[styles.typeLabel, selected && styles.typeLabelActive]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.typeDescription}>
-            {EVIDENCE_TYPE_OPTIONS.find((o) => o.type === form.type)?.description}
-          </Text>
-        </View>
-
-        {/* Step 3 — Details */}
-        <View style={styles.section}>
-          <Text style={styles.stepLabel}>3. Evidence Details</Text>
-          <TextInput
-            label="Title"
-            value={form.title}
-            onChangeText={update("title")}
-            error={errors.title}
-            placeholder="e.g. IS 732 Safety Certificate 2024"
-            required
-          />
-          <TextInput
-            label="Description"
-            value={form.description}
-            onChangeText={update("description")}
-            error={errors.description}
-            placeholder="Briefly describe what this evidence shows…"
-            multiline
-            numberOfLines={3}
-            required
-          />
-          {form.type === "url" ? (
-            <TextInput
-              label="URL"
-              value={form.url}
-              onChangeText={update("url")}
-              error={errors.url}
-              placeholder="https://…"
-              keyboardType="url"
-              autoCapitalize="none"
-              required
-            />
-          ) : null}
-
-          {/* File upload placeholder — functional upload in Part 3 */}
-          {form.type !== "url" ? (
-            <Pressable style={styles.uploadArea}>
-              <Text style={styles.uploadIcon}>
-                {EVIDENCE_TYPE_OPTIONS.find((o) => o.type === form.type)?.icon}
-              </Text>
-              <Text style={styles.uploadTitle}>
-                Tap to select{" "}
-                {form.type === "photo"
-                  ? "a photo"
-                  : form.type === "video"
-                  ? "a video"
-                  : "a file"}
-              </Text>
-              <Text style={styles.uploadHint}>
-                File upload will be available in the next update.
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {/* Existing evidence for this worker */}
-        {existingEvidence.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.stepLabel}>My Previous Evidence</Text>
-            {existingEvidence.slice(0, 3).map((e) => (
-              <EvidenceCard key={e.id} evidence={e} />
+            {qualifications.slice(0, 3).map((q) => (
+              <Pressable
+                key={q.id}
+                style={[
+                  styles.criterionBtn,
+                  form.criterionId.startsWith(q.id) && styles.criterionBtnActive,
+                ]}
+                onPress={() =>
+                  update("criterionId")(
+                    form.criterionId.startsWith(q.id) ? "" : q.id
+                  )
+                }
+              >
+                <Text style={styles.criterionTitle}>{q.title}</Text>
+                <Text style={styles.criterionSub}>
+                  {q.trade} · Level {q.level}
+                  {q.is_illustrative ? " · Illustrative" : ""}
+                </Text>
+              </Pressable>
             ))}
           </View>
-        ) : null}
+        )}
+      </View>
 
+      {/* Step 2 — Evidence type */}
+      <View style={styles.section}>
+        <Text style={styles.stepLabel}>2. Evidence Type</Text>
+        <View style={styles.typeGrid}>
+          {EVIDENCE_TYPE_OPTIONS.map(({ type, label, icon }) => {
+            const selected = form.evidenceType === type;
+            return (
+              <Pressable
+                key={type}
+                style={[styles.typeBtn, selected && styles.typeBtnActive]}
+                onPress={() => {
+                  update("evidenceType")(type);
+                  setSelectedFile(null);
+                  setErrors({});
+                }}
+              >
+                <Text style={styles.typeIcon}>{icon}</Text>
+                <Text style={[styles.typeLabel, selected && styles.typeLabelActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Step 3 — File or URL */}
+      <View style={styles.section}>
+        <Text style={styles.stepLabel}>3. Select File or Enter URL</Text>
+
+        {isURLMode ? (
+          <TextInput
+            label="External URL"
+            value={form.url}
+            onChangeText={update("url")}
+            error={errors.url}
+            placeholder="https://…"
+            keyboardType="url"
+            autoCapitalize="none"
+            required
+          />
+        ) : (
+          <>
+            {selectedFile ? (
+              <View style={styles.filePreview}>
+                {selectedFile.type.startsWith("image/") && (
+                  <Image
+                    source={{ uri: selectedFile.uri }}
+                    style={styles.previewImage}
+                    resizeMode="cover"
+                  />
+                )}
+                <View style={styles.fileInfo}>
+                  <Text style={styles.fileName} numberOfLines={1}>
+                    {selectedFile.name}
+                  </Text>
+                  <Text style={styles.fileSize}>
+                    {formatBytes(selectedFile.sizeBytes ?? null)}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setSelectedFile(null)}
+                  style={styles.clearFile}
+                >
+                  <Text style={styles.clearFileText}>✕</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.uploadActions}>
+                <Pressable style={styles.uploadBtn} onPress={pickFromGallery}>
+                  <Text style={styles.uploadBtnIcon}>🖼</Text>
+                  <Text style={styles.uploadBtnLabel}>Gallery</Text>
+                </Pressable>
+                <Pressable style={styles.uploadBtn} onPress={takePhoto}>
+                  <Text style={styles.uploadBtnIcon}>📷</Text>
+                  <Text style={styles.uploadBtnLabel}>Camera</Text>
+                </Pressable>
+              </View>
+            )}
+            {errors.file ? (
+              <Text style={styles.fieldError}>{errors.file}</Text>
+            ) : null}
+            <Text style={styles.fileHint}>
+              Max {MAX_FILE_MB} MB · Images, PDFs, and short videos accepted.
+              File type is re-detected server-side.
+            </Text>
+          </>
+        )}
+      </View>
+
+      {/* Step 4 — Details */}
+      <View style={styles.section}>
+        <Text style={styles.stepLabel}>4. Evidence Details</Text>
+        <TextInput
+          label="Title"
+          value={form.title}
+          onChangeText={update("title")}
+          error={errors.title}
+          placeholder="e.g. IS 732 Safety Certificate 2024"
+          required
+        />
+        <TextInput
+          label="Description"
+          value={form.description}
+          onChangeText={update("description")}
+          error={errors.description}
+          placeholder="Briefly describe what this evidence shows…"
+          multiline
+          numberOfLines={3}
+          required
+        />
+      </View>
+
+      {/* Upload error */}
+      {(uploadError || urlError) && (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorCardText}>
+            ⚠️ {uploadError ?? urlError}
+          </Text>
+        </Card>
+      )}
+
+      {/* Submit */}
+      {isSubmitting ? (
+        <View style={styles.uploadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.uploadingText}>
+            Uploading evidence… please wait
+          </Text>
+        </View>
+      ) : (
         <Button
           label="Submit Evidence"
           variant="primary"
           size="lg"
           fullWidth
-          loading={submitting}
           onPress={handleSubmit}
           style={styles.submitBtn}
         />
-      </ScrollView>
+      )}
 
-      <ConfirmDialog
-        visible={showConfirm}
-        title="Submit Evidence?"
-        message={`Submit "${form.title}" as ${form.type} evidence? Once submitted, an assessor will be notified to review it.`}
-        confirmLabel="Submit"
-        cancelLabel="Cancel"
-        onConfirm={confirmSubmit}
-        onCancel={() => setShowConfirm(false)}
-      />
-    </>
+      {/* Previous evidence */}
+      <View style={styles.section}>
+        <Text style={styles.stepLabel}>My Submitted Evidence</Text>
+        {evidenceLoading ? (
+          <ActivityIndicator color={Colors.primary} />
+        ) : myEvidence.length === 0 ? (
+          <EmptyState
+            icon="📎"
+            title="No evidence submitted yet"
+            description="Upload photos, certificates, or documents above."
+          />
+        ) : (
+          <View style={styles.evidenceList}>
+            {myEvidence.map((item) => (
+              <EvidenceListItem key={item.id} item={item} />
+            ))}
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
+}
+
+// ── Evidence list item component ──────────────────────────────────────────────
+
+function EvidenceListItem({ item }: { item: EvidenceItemData }) {
+  const typeOption = EVIDENCE_TYPE_OPTIONS.find(
+    (o) => o.type === item.evidence_type
+  );
+  return (
+    <Card style={styles.evidenceItem}>
+      <View style={styles.evidenceItemHeader}>
+        <Text style={styles.evidenceItemIcon}>{typeOption?.icon ?? "📄"}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.evidenceItemTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          {item.original_filename && (
+            <Text style={styles.evidenceItemFilename} numberOfLines={1}>
+              {item.original_filename}
+              {item.file_size_bytes ? ` · ${formatBytes(item.file_size_bytes)}` : ""}
+            </Text>
+          )}
+        </View>
+        <Badge
+          label={reviewStatusLabel(item.review_status)}
+          variant={reviewStatusVariant(item.review_status)}
+          size="sm"
+        />
+      </View>
+      {item.description && (
+        <Text style={styles.evidenceItemDesc} numberOfLines={2}>
+          {item.description}
+        </Text>
+      )}
+      {item.review_note && (
+        <View style={styles.reviewNote}>
+          <Text style={styles.reviewNoteLabel}>Assessor note:</Text>
+          <Text style={styles.reviewNoteText}>{item.review_note}</Text>
+        </View>
+      )}
+      <Text style={styles.evidenceItemDate}>
+        Submitted {new Date(item.created_at).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </Text>
+    </Card>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+function formatBytes(bytes: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.background },
-  container: { padding: Spacing.base, gap: Spacing.xl, paddingBottom: Spacing["4xl"] },
-
-  contextCard: {
-    gap: 4,
-    backgroundColor: "#EBF2FF",
-    borderColor: Colors.primary + "30",
+  container: {
+    padding: Spacing.base,
+    gap: Spacing.xl,
+    paddingBottom: Spacing["4xl"],
   },
-  contextLabel: { fontSize: 11, fontWeight: "700", color: Colors.primary, letterSpacing: 0.5 },
-  contextTitle: { fontSize: 16, fontWeight: "800", color: Colors.textPrimary },
-  contextSub: { fontSize: 12, color: Colors.textSecondary },
 
   section: { gap: Spacing.md },
   stepLabel: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary },
-  fieldError: { fontSize: 12, color: Colors.error },
+  fieldError: { fontSize: 12, color: Colors.error, marginTop: -Spacing.xs },
 
   criterionList: { gap: Spacing.sm },
   criterionBtn: {
-    backgroundColor: Colors.backgroundCard,
     borderRadius: Radius.md,
     borderWidth: 1.5,
     borderColor: Colors.border,
     padding: Spacing.md,
-    gap: Spacing.xs,
+    backgroundColor: Colors.backgroundCard,
+    gap: 2,
   },
   criterionBtnActive: {
     borderColor: Colors.primary,
     backgroundColor: "#EBF2FF",
   },
-  criterionHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.md,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    marginTop: 2,
-  },
-  radioCircleActive: { borderColor: Colors.primary },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-  criterionTitle: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary },
-  criterionDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  existingCount: { fontSize: 11, color: Colors.teal, fontWeight: "600", paddingLeft: 32 },
+  criterionTitle: { fontSize: 13, fontWeight: "700", color: Colors.textPrimary },
+  criterionSub: { fontSize: 12, color: Colors.textSecondary },
 
-  typeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
+  typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
   typeBtn: {
     flex: 1,
     minWidth: "28%",
@@ -371,22 +585,72 @@ const styles = StyleSheet.create({
   typeIcon: { fontSize: 22 },
   typeLabel: { fontSize: 12, fontWeight: "600", color: Colors.textSecondary },
   typeLabelActive: { color: Colors.primary },
-  typeDescription: { fontSize: 13, color: Colors.textSecondary },
 
-  uploadArea: {
+  uploadActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  uploadBtn: {
+    flex: 1,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderStyle: "dashed",
     borderRadius: Radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    padding: Spacing["2xl"],
-    gap: Spacing.sm,
+    padding: Spacing.xl,
+    gap: Spacing.xs,
     backgroundColor: Colors.backgroundMuted,
   },
-  uploadIcon: { fontSize: 36 },
-  uploadTitle: { fontSize: 15, fontWeight: "600", color: Colors.textPrimary },
-  uploadHint: { fontSize: 12, color: Colors.textMuted, textAlign: "center" },
+  uploadBtnIcon: { fontSize: 28 },
+  uploadBtnLabel: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
+  fileHint: { fontSize: 11, color: Colors.textMuted, lineHeight: 15 },
+
+  filePreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    backgroundColor: Colors.backgroundCard,
+  },
+  previewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.backgroundMuted,
+  },
+  fileInfo: { flex: 1, gap: 2 },
+  fileName: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  fileSize: { fontSize: 11, color: Colors.textMuted },
+  clearFile: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.error + "15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearFileText: { fontSize: 12, color: Colors.error, fontWeight: "700" },
+
+  errorCard: {
+    backgroundColor: Colors.error + "10",
+    borderColor: Colors.error + "30",
+  },
+  errorCardText: { fontSize: 13, color: Colors.error, lineHeight: 18 },
+
+  uploadingContainer: {
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.xl,
+  },
+  uploadingText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
 
   submitBtn: { marginTop: Spacing.sm },
 
@@ -407,4 +671,29 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: Spacing.sm,
   },
+
+  evidenceList: { gap: Spacing.sm },
+  evidenceItem: { gap: Spacing.xs },
+  evidenceItemHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+  },
+  evidenceItemIcon: { fontSize: 20, marginTop: 1 },
+  evidenceItemTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  evidenceItemFilename: { fontSize: 11, color: Colors.textMuted },
+  evidenceItemDesc: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  evidenceItemDate: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  reviewNote: {
+    backgroundColor: Colors.warning + "15",
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    gap: 2,
+  },
+  reviewNoteLabel: { fontSize: 11, fontWeight: "700", color: Colors.warning },
+  reviewNoteText: { fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
 });

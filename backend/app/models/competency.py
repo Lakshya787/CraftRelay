@@ -31,6 +31,14 @@ class EvidenceType(str, enum.Enum):
     other = "other"
 
 
+class EvidenceReviewStatus(str, enum.Enum):
+    """Review lifecycle for a piece of evidence."""
+    pending = "pending"       # submitted, awaiting assessor review
+    under_review = "under_review"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
 class CompetencyCriterion(Base, TimestampMixin):
     """
     A single assessable criterion within a Qualification.
@@ -57,6 +65,8 @@ class CompetencyCriterion(Base, TimestampMixin):
     guidance: Mapped[str | None] = mapped_column(Text)
     is_mandatory: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Reference to the rubric/performance element in the source document
+    rubric_reference: Mapped[str | None] = mapped_column(String(100))
 
     # ── Relationships ─────────────────────────────────────────────────────────
     qualification: Mapped[Qualification] = relationship(  # noqa: F821
@@ -99,8 +109,26 @@ class EvidenceItem(Base, TimestampMixin):
         Enum(EvidenceType, name="evidence_type_enum"),
         nullable=False,
     )
+    review_status: Mapped[EvidenceReviewStatus] = mapped_column(
+        Enum(EvidenceReviewStatus, name="evidence_review_status_enum"),
+        nullable=False,
+        default=EvidenceReviewStatus.pending,
+    )
+    # ── File storage metadata ──────────────────────────────────────────────────
+    # stored_filename: server-generated UUID name (never the client filename)
+    stored_filename: Mapped[str | None] = mapped_column(String(500))
+    # original_filename: client-supplied name, stored for display only, never trusted for path ops
+    original_filename: Mapped[str | None] = mapped_column(String(500))
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer)
+    # mime_type: re-detected by magic bytes server-side, stored here for reference
+    mime_type: Mapped[str | None] = mapped_column(String(127))
+    # storage_backend: 'local' for dev; will be 'gcs' / 's3' in production
+    storage_backend: Mapped[str] = mapped_column(String(20), default="local", nullable=False)
+    # file_url: public-facing URL or signed URL; null for local non-public storage
     file_url: Mapped[str | None] = mapped_column(String(2048))
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Review note from assessor
+    review_note: Mapped[str | None] = mapped_column(Text)
 
     # ── Relationships ─────────────────────────────────────────────────────────
     worker_profile: Mapped[WorkerProfile] = relationship(  # noqa: F821

@@ -5,6 +5,7 @@ app/schemas/qualification.py — Request/response schemas for qualification endp
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -19,6 +20,7 @@ class CriterionResponse(BaseModel):
     guidance: Optional[str] = None
     is_mandatory: bool
     order_index: int
+    rubric_reference: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +44,9 @@ class QualificationResponse(BaseModel):
     is_active: bool
     is_illustrative: bool
     current_version: int
+    source_url: Optional[str] = None
+    publication_date: Optional[date] = None
+    rubric_reference: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -55,5 +60,7 @@ class QualificationSummaryResponse(BaseModel):
     trade: str
     level: int
     is_illustrative: bool
+    issuing_body: str
+    source_url: Optional[str] = None
 
     model_config = {"from_attributes": True}

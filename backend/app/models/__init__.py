@@ -10,7 +10,7 @@ from app.models.worker_profile import WorkerProfile
 from app.models.skill import Skill
 from app.models.worker_skill import WorkerSkill
 from app.models.qualification import Qualification, QualificationVersion
-from app.models.competency import CompetencyCriterion, EvidenceItem, CriterionEvidenceMap
+from app.models.competency import CompetencyCriterion, EvidenceItem, EvidenceReviewStatus, CriterionEvidenceMap
 from app.models.assessment import (
     AssessmentCase,
     ApprovedAssessmentTask,

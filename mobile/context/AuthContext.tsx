@@ -1,48 +1,121 @@
 /**
- * context/AuthContext.tsx — Mock authentication context.
+ * context/AuthContext.tsx — Real JWT authentication context.
  *
- * Part 2: Provides a role-switching mechanism using mock data.
- * Part 3: Will be replaced with real JWT authentication.
+ * Replaces the mock role-switcher from Part 2.
+ * • Tokens are stored in SecureStore (encrypted key-value store on device).
+ * • On app launch, the stored token is validated against /auth/me.
+ * • login() calls POST /auth/login and stores the returned access token.
+ * • logout() clears the token and user state.
  */
 
-import React, { createContext, useContext, useState } from "react";
-import type { User, UserRole } from "../types/domain";
-import {
-  MOCK_WORKER_USER,
-  MOCK_ASSESSOR_USER,
-  MOCK_CUSTOMER_USER,
-  MOCK_ADMIN_USER,
-} from "../data/mockData";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { apiClient, ApiError } from "../lib/apiClient";
+import type { User } from "../types/domain";
+
+const TOKEN_KEY = "craftrelay_access_token";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AuthContextValue {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  login: (role: UserRole) => void;
-  logout: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
+
+interface TokenResponse {
+  access_token: string;
+}
+
+interface UserResponse {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  is_verified: boolean;
+}
+
+// ── Context ───────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const ROLE_USER_MAP: Record<UserRole, User> = {
-  worker: MOCK_WORKER_USER,
-  assessor: MOCK_ASSESSOR_USER,
-  customer: MOCK_CUSTOMER_USER,
-  admin: MOCK_ADMIN_USER,
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = (role: UserRole) => {
-    setUser(ROLE_USER_MAP[role]);
-  };
+  // On mount: try to restore the stored token
+  useEffect(() => {
+    restoreSession();
+  }, []);
 
-  const logout = () => {
+  async function restoreSession() {
+    try {
+      const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (stored) {
+        // Validate token by fetching /auth/me
+        const userData = await apiClient.get<UserResponse>("/auth/me", {
+          headers: { Authorization: `Bearer ${stored}` },
+        });
+        setToken(stored);
+        setUser(mapUserResponse(userData));
+      }
+    } catch {
+      // Token expired or invalid — clear it silently
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function login(email: string, password: string): Promise<void> {
+    const tokenData = await apiClient.post<TokenResponse>("/auth/login", {
+      email,
+      password,
+    });
+
+    const { access_token } = tokenData;
+    await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+    setToken(access_token);
+
+    // Fetch user profile
+    const userData = await apiClient.get<UserResponse>("/auth/me", {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    setUser(mapUserResponse(userData));
+  }
+
+  async function logout(): Promise<void> {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    setToken(null);
     setUser(null);
-  };
+  }
+
+  async function refreshUser(): Promise<void> {
+    if (!token) return;
+    const userData = await apiClient.get<UserResponse>("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setUser(mapUserResponse(userData));
+  }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: user !== null, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: user !== null,
+        isLoading,
+        login,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -52,4 +125,18 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function mapUserResponse(r: UserResponse): User {
+  return {
+    id: r.id,
+    name: r.full_name,
+    email: r.email,
+    phone: "",           // not returned by /auth/me yet
+    role: r.role as any,
+    createdAt: new Date().toISOString(),
+    isActive: r.is_active,
+  };
 }
