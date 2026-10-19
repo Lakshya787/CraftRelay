@@ -25,10 +25,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.db.types import JSONBType
 
 
 class CaseStatus(str, enum.Enum):
@@ -145,8 +146,8 @@ class ApprovedAssessmentTask(Base, TimestampMixin):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer)
-    required_tools: Mapped[list | None] = mapped_column(JSONB)
-    assessment_criteria: Mapped[list | None] = mapped_column(JSONB)
+    required_tools: Mapped[list | None] = mapped_column(JSONBType)
+    assessment_criteria: Mapped[list | None] = mapped_column(JSONBType)
     max_score: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     pass_score: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

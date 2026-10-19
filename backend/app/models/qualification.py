@@ -27,7 +27,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
+
+from app.db.types import JSONBType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -117,7 +119,7 @@ class QualificationVersion(Base, TimestampMixin):
     )
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     change_summary: Mapped[str | None] = mapped_column(String(500))
-    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)   # full criteria JSON
+    snapshot: Mapped[dict] = mapped_column(JSONBType, nullable=False)   # full criteria JSON
 
     qualification: Mapped[Qualification] = relationship(
         "Qualification", back_populates="versions"
