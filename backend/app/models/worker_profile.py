@@ -71,6 +71,17 @@ class WorkerProfile(Base, TimestampMixin):
         back_populates="worker_profile",
         foreign_keys="ServiceRequest.worker_profile_id",
     )
+    customer_reviews: Mapped[list[CustomerReview]] = relationship(  # noqa: F821
+        "CustomerReview",
+        back_populates="worker_profile",
+        foreign_keys="CustomerReview.worker_profile_id",
+    )
+
+    @property
+    def full_name(self) -> str | None:
+        if "user" in self.__dict__ and self.user is not None:
+            return self.user.full_name
+        return None
 
     def __repr__(self) -> str:
         return f"<WorkerProfile id={self.id} user_id={self.user_id}>"
@@ -80,4 +91,4 @@ from app.models.user import User  # noqa: E402
 from app.models.worker_skill import WorkerSkill  # noqa: E402
 from app.models.competency import EvidenceItem  # noqa: E402
 from app.models.assessment import AssessmentCase, CompetencyVerification  # noqa: E402
-from app.models.service import ServiceRequest  # noqa: E402
+from app.models.service import ServiceRequest, CustomerReview  # noqa: E402

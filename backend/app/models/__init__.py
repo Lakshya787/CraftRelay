@@ -17,7 +17,7 @@ from app.models.assessment import (
     AssessmentResult,
     CompetencyVerification,
 )
-from app.models.service import ServiceRequest, ServiceCompletion, CustomerReview
+from app.models.service import RequestStatus, ServiceRequest, ServiceCompletion, CustomerReview
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -35,6 +35,7 @@ __all__ = [
     "ApprovedAssessmentTask",
     "AssessmentResult",
     "CompetencyVerification",
+    "RequestStatus",
     "ServiceRequest",
     "ServiceCompletion",
     "CustomerReview",

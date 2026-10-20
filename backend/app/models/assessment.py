@@ -259,9 +259,21 @@ class CompetencyVerification(Base, TimestampMixin):
     worker_profile: Mapped[WorkerProfile] = relationship(  # noqa: F821
         "WorkerProfile", back_populates="competency_verifications"
     )
+    qualification: Mapped[Qualification] = relationship(  # noqa: F821
+        "Qualification", foreign_keys=[qualification_id]
+    )
     qualification_version: Mapped[QualificationVersion] = relationship(  # noqa: F821
         "QualificationVersion", back_populates="competency_verifications"
     )
+
+    @property
+    def qualification_title(self) -> str | None:
+        if "qualification" in self.__dict__ and self.qualification is not None:
+            return self.qualification.title
+        if "qualification_version" in self.__dict__ and self.qualification_version is not None:
+            if "qualification" in self.qualification_version.__dict__ and self.qualification_version.qualification is not None:
+                return self.qualification_version.qualification.title
+        return None
 
     def __repr__(self) -> str:
         return (

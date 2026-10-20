@@ -67,6 +67,12 @@ class WorkerSkill(Base, TimestampMixin):
         "Skill", back_populates="worker_skills"
     )
 
+    @property
+    def skill_name(self) -> str | None:
+        if "skill" in self.__dict__ and self.skill is not None:
+            return self.skill.name
+        return None
+
     def __repr__(self) -> str:
         return (
             f"<WorkerSkill worker={self.worker_profile_id} "

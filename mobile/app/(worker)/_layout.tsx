@@ -93,6 +93,24 @@ export default function WorkerLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="job/[id]"
+        options={{
+          title: "Job Details",
+          headerTitle: "Job Details",
+          href: null,
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={{ paddingLeft: 16, paddingRight: 8, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Text style={{ fontSize: 15, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
+            </Pressable>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

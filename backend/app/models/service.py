@@ -7,8 +7,12 @@ from __future__ import annotations
 import enum
 import uuid
 
+from datetime import date, datetime
+
 from sqlalchemy import (
     CheckConstraint,
+    Date,
+    DateTime,
     Enum,
     ForeignKey,
     Integer,
@@ -24,12 +28,13 @@ from app.db.base import Base, TimestampMixin
 
 
 class RequestStatus(str, enum.Enum):
-    open = "open"
-    accepted = "accepted"
-    in_progress = "in_progress"
-    completed = "completed"
-    cancelled = "cancelled"
-    disputed = "disputed"
+    requested = "requested"      # customer submitted
+    accepted = "accepted"        # worker accepted
+    declined = "declined"        # worker declined
+    in_progress = "in_progress" # worker started work
+    completion_pending = "completion_pending"  # worker marked done
+    completed = "completed"      # customer confirmed
+    cancelled = "cancelled"      # either party cancelled
 
 
 class ServiceRequest(Base, TimestampMixin):
@@ -59,10 +64,12 @@ class ServiceRequest(Base, TimestampMixin):
     status: Mapped[RequestStatus] = mapped_column(
         Enum(RequestStatus, name="request_status_enum"),
         nullable=False,
-        default=RequestStatus.open,
+        default=RequestStatus.requested,
         index=True,
     )
     agreed_price: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    service_location: Mapped[str | None] = mapped_column(String(500))
+    preferred_date: Mapped[date | None] = mapped_column(Date)
 
     # ── Relationships ─────────────────────────────────────────────────────────
     customer: Mapped[User] = relationship(  # noqa: F821
@@ -112,6 +119,9 @@ class ServiceCompletion(Base, TimestampMixin):
     )
     worker_notes: Mapped[str | None] = mapped_column(Text)
     photo_url: Mapped[str | None] = mapped_column(String(2048))
+    worker_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    customer_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    customer_notes: Mapped[str | None] = mapped_column(Text)
 
     service_request: Mapped[ServiceRequest] = relationship(
         "ServiceRequest", back_populates="completion"
@@ -167,6 +177,11 @@ class CustomerReview(Base, TimestampMixin):
         "User",
         back_populates="customer_reviews",
         foreign_keys=[customer_id],
+    )
+    worker_profile: Mapped[WorkerProfile] = relationship(  # noqa: F821
+        "WorkerProfile",
+        back_populates="customer_reviews",
+        foreign_keys=[worker_profile_id],
     )
 
     def __repr__(self) -> str:

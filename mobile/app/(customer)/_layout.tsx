@@ -2,15 +2,35 @@
  * app/(customer)/_layout.tsx — Customer tab navigator.
  */
 
-import { Tabs, router } from "expo-router";
+import React, { useEffect } from "react";
+import { Tabs, router, usePathname } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Text, Pressable } from "react-native";
+import { useAuth } from "../../context/AuthContext";
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
 }
 
 export default function CustomerLayout() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const isCustomer = isAuthenticated && user?.role === "customer";
+    const isPublicPath =
+      pathname === "/(customer)" ||
+      pathname === "/(customer)/" ||
+      pathname === "/(customer)/index" ||
+      pathname.includes("/worker");
+
+    // If not authenticated or wrong role, redirect to /(customer)/index if accessing protected customer tabs
+    if (!isCustomer && !isPublicPath) {
+      router.replace("/(customer)" as any);
+    }
+  }, [isLoading, isAuthenticated, user, pathname]);
+
   return (
     <Tabs
       screenOptions={{
@@ -46,22 +66,24 @@ export default function CustomerLayout() {
         name="requests"
         options={{
           title: "My Requests",
-          tabBarLabel: "Requests",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📬" focused={focused} />,
+          tabBarLabel: "My Requests",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
           headerTitle: "My Service Requests",
         }}
       />
       <Tabs.Screen
-        name="account"
+        name="profile"
         options={{
-          title: "Account",
-          tabBarLabel: "Account",
+          title: "Profile",
+          tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
-          headerTitle: "My Account",
+          headerTitle: "Customer Profile",
         }}
       />
+
+      {/* Hidden screens */}
       <Tabs.Screen
-        name="worker-detail"
+        name="worker/[id]"
         options={{
           title: "Worker Profile",
           headerTitle: "Professional Profile",
@@ -73,9 +95,57 @@ export default function CustomerLayout() {
               accessibilityRole="button"
               accessibilityLabel="Back"
             >
-              <Text style={{ fontSize: 15, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
+              <Text style={{ fontSize: 16, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
             </Pressable>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="new-request"
+        options={{
+          title: "Request Service",
+          headerTitle: "Request Service",
+          href: null,
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={{ paddingLeft: 16, paddingRight: 8, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Text style={{ fontSize: 16, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
+            </Pressable>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="request/[id]"
+        options={{
+          title: "Request Details",
+          headerTitle: "Service Request",
+          href: null,
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={{ paddingLeft: 16, paddingRight: 8, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Text style={{ fontSize: 16, color: Colors.primary, fontWeight: "600" }}>‹ Back</Text>
+            </Pressable>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="worker-detail"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

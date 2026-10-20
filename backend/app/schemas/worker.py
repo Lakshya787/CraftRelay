@@ -15,6 +15,7 @@ class WorkerProfileResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    full_name: Optional[str] = None
     trade_title: Optional[str] = None
     bio: Optional[str] = None
     city: Optional[str] = None
@@ -32,6 +33,7 @@ class WorkerSummaryResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    full_name: Optional[str] = None
     trade_title: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
