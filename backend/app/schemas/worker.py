@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,20 +16,12 @@ class WorkerProfileResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
-<<<<<<< HEAD
     full_name: Optional[str] = None
     trade_title: Optional[str] = None
     bio: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     years_experience: Optional[int] = None
-=======
-    trade_title: str | None = None
-    bio: str | None = None
-    city: str | None = None
-    state: str | None = None
-    years_experience: int | None = None
->>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
     is_available: bool
     average_rating: float | None = None
     total_reviews: int
@@ -41,16 +34,10 @@ class WorkerSummaryResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
-<<<<<<< HEAD
     full_name: Optional[str] = None
     trade_title: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-=======
-    trade_title: str | None = None
-    city: str | None = None
-    state: str | None = None
->>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
     is_available: bool
     average_rating: float | None = None
     total_reviews: int

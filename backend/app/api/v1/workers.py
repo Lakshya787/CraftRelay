@@ -17,33 +17,23 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import CurrentUser, DbSession, require_worker_or_admin
 from app.models.assessment import CompetencyVerification, VerificationStatus
-<<<<<<< HEAD
-from app.models.qualification import QualificationVersion
-from app.models.skill import Skill
-=======
 from app.models.qualification import Qualification, QualificationVersion
->>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
+from app.models.skill import Skill
 from app.models.user import UserRole
 from app.models.worker_profile import WorkerProfile
 from app.models.worker_skill import WorkerSkill
 from app.schemas.common import PaginatedResponse, SuccessResponse
-<<<<<<< HEAD
 from app.schemas.marketplace import (
     DeclaredSkillItem,
     VerifiedCompetencyItem,
     WorkerSkillsResponse,
 )
 from app.schemas.skills import SkillResponse
-=======
->>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
 from app.schemas.worker import (
     WorkerProfileResponse,
     WorkerProfileUpdateRequest,
     WorkerSummaryResponse,
-<<<<<<< HEAD
-=======
     WorkerVerificationResponse,
->>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
 )
 
 router = APIRouter(prefix="/workers", tags=["workers"])

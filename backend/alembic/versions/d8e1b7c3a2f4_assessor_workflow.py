@@ -34,11 +34,11 @@ criterion_decision_enum = sa.Enum(
     "rejected",
     "additional_evidence_required",
     name="criterion_decision_enum",
+    create_type=False,
 )
 
 
 def upgrade() -> None:
-    criterion_decision_enum.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "criterion_assessment_decisions",

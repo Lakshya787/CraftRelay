@@ -59,6 +59,26 @@ class Settings(BaseSettings):
     # Maximum evidence file size in bytes (default 15 MB)
     max_evidence_file_bytes: int = 15 * 1024 * 1024
 
+    # ── AI Service ────────────────────────────────────────────────────────────
+    # Provider: 'none' | 'gemini' | 'openai' | 'mock'
+    ai_provider: str = "none"
+    ai_api_key: str | None = None
+    ai_base_url: str | None = None
+    gemini_api_key: str | None = None
+    openai_api_key: str | None = None
+    ai_model: str = "gemini-1.5-flash"
+    ai_timeout_seconds: float = 12.0
+    ai_enabled: bool = False
+
+    @property
+    def effective_ai_api_key(self) -> str | None:
+        """Resolve API key across provider-specific and general env vars."""
+        key = self.gemini_api_key or self.openai_api_key or self.ai_api_key
+        if key and key.strip() in {"", "CHANGE_ME", "none", "null"}:
+            return None
+        return key
+
+
 
 
 @lru_cache(maxsize=1)

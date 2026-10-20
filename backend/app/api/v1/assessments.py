@@ -913,7 +913,7 @@ async def review_mapping(
 @router.delete(
     "/cases/{case_id}/mappings/{mapping_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,
+    response_model=None,
     summary="Remove an evidence→criterion link",
 )
 async def delete_mapping(
