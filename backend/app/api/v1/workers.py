@@ -17,22 +17,33 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import CurrentUser, DbSession, require_worker_or_admin
 from app.models.assessment import CompetencyVerification, VerificationStatus
+<<<<<<< HEAD
 from app.models.qualification import QualificationVersion
 from app.models.skill import Skill
+=======
+from app.models.qualification import Qualification, QualificationVersion
+>>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
 from app.models.user import UserRole
 from app.models.worker_profile import WorkerProfile
 from app.models.worker_skill import WorkerSkill
 from app.schemas.common import PaginatedResponse, SuccessResponse
+<<<<<<< HEAD
 from app.schemas.marketplace import (
     DeclaredSkillItem,
     VerifiedCompetencyItem,
     WorkerSkillsResponse,
 )
 from app.schemas.skills import SkillResponse
+=======
+>>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
 from app.schemas.worker import (
     WorkerProfileResponse,
     WorkerProfileUpdateRequest,
     WorkerSummaryResponse,
+<<<<<<< HEAD
+=======
+    WorkerVerificationResponse,
+>>>>>>> 52822fbe5aeeb63a728cd2d65e4db7cc95597355
 )
 
 router = APIRouter(prefix="/workers", tags=["workers"])
@@ -175,6 +186,108 @@ async def update_my_profile(
     return SuccessResponse(
         data=WorkerProfileResponse.model_validate(profile),
         message="Profile updated.",
+    )
+
+
+async def _verifications_for(
+    db: DbSession,
+    worker_profile_id: uuid.UUID,
+    *,
+    verified_only: bool,
+) -> list[WorkerVerificationResponse]:
+    query = (
+        select(
+            CompetencyVerification,
+            Qualification,
+            QualificationVersion.version_number,
+        )
+        .join(
+            Qualification,
+            Qualification.id == CompetencyVerification.qualification_id,
+        )
+        .join(
+            QualificationVersion,
+            QualificationVersion.id
+            == CompetencyVerification.qualification_version_id,
+        )
+        .where(CompetencyVerification.worker_profile_id == worker_profile_id)
+        .order_by(CompetencyVerification.created_at.desc())
+    )
+    if verified_only:
+        query = query.where(
+            CompetencyVerification.status == VerificationStatus.verified
+        )
+
+    rows = (await db.execute(query)).all()
+    return [
+        WorkerVerificationResponse(
+            id=verification.id,
+            qualification_id=qualification.id,
+            qualification_code=qualification.code,
+            qualification_title=qualification.title,
+            trade=qualification.trade,
+            level=qualification.level,
+            issuing_body=qualification.issuing_body,
+            is_illustrative=qualification.is_illustrative,
+            status=verification.status.value,
+            certificate_number=verification.certificate_number,
+            qualification_version_number=version_number,
+            awarded_by_id=verification.awarded_by_id,
+            created_at=verification.created_at,
+        )
+        for verification, qualification, version_number in rows
+    ]
+
+
+@router.get(
+    "/me/verifications",
+    response_model=SuccessResponse[list[WorkerVerificationResponse]],
+    summary="List my formal competency verifications",
+)
+async def list_my_verifications(
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SuccessResponse[list[WorkerVerificationResponse]]:
+    """Verified competencies for the authenticated worker (all statuses)."""
+    if current_user.role != UserRole.worker:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only workers have competency verifications.",
+        )
+    profile_result = await db.execute(
+        select(WorkerProfile).where(WorkerProfile.user_id == current_user.id)
+    )
+    profile = profile_result.scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Worker profile not found.",
+        )
+    return SuccessResponse(
+        data=await _verifications_for(db, profile.id, verified_only=False)
+    )
+
+
+@router.get(
+    "/{worker_id}/verifications",
+    response_model=SuccessResponse[list[WorkerVerificationResponse]],
+    summary="List a worker's verified competencies (public)",
+)
+async def list_worker_verifications(
+    worker_id: uuid.UUID,
+    db: DbSession,
+) -> SuccessResponse[list[WorkerVerificationResponse]]:
+    """Public view — only formally verified competencies are returned."""
+    profile_result = await db.execute(
+        select(WorkerProfile).where(WorkerProfile.id == worker_id)
+    )
+    if profile_result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Worker profile not found.",
+        )
+    return SuccessResponse(
+        data=await _verifications_for(db, worker_id, verified_only=True)
     )
 
 

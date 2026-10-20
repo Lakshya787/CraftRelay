@@ -531,13 +531,6 @@ function EvidenceListItem({ item }: { item: EvidenceItemData }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.background },
   container: {

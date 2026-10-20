@@ -2,9 +2,10 @@
   {
     "id": "task-001",
     "qualification_id": "qual-001",
+    "qualification_code": "ELE-L2",
     "code": "ELE-L2-PT-01",
     "title": "Wire a single-phase consumer unit",
-    "description": "Candidate must correctly wire a 8-way consumer unit with RCD protection, label all circuits, and pass an insulation resistance test.",
+    "description": "Candidate must correctly wire an 8-way consumer unit with RCD protection, label all circuits, and pass an insulation resistance test.",
     "estimated_duration_minutes": 90,
     "required_tools": ["Screwdrivers", "Wire strippers", "Multimeter", "Insulation tester"],
     "assessment_criteria": [
@@ -14,12 +15,17 @@
       "Labelling legible and accurate",
       "Insulation resistance >= 1 MΩ"
     ],
+    "criterion_codes": ["ELE-L2-C01", "ELE-L2-C02", "ELE-L2-C03", "ELE-L2-C04"],
+    "rubric_reference": "ELE-L2-R01",
+    "is_approved": true,
     "max_score": 100,
-    "pass_score": 70
+    "pass_score": 70,
+    "note": "ILLUSTRATIVE ONLY — fictional assessment task and rubric for the CraftRelay SIH demonstration. Not an official NCVT/NSQF task or threshold."
   },
   {
     "id": "task-002",
     "qualification_id": "qual-002",
+    "qualification_code": "PLM-L2",
     "code": "PLM-L2-PT-01",
     "title": "Install a basin and waste trap",
     "description": "Candidate installs a wall-hung washbasin, connects hot and cold supplies, fits a bottle trap, and tests for leaks at 0.5 bar.",
@@ -31,12 +37,17 @@
       "Waste drains within 30 seconds",
       "Trap accessible for cleaning"
     ],
+    "criterion_codes": ["PLM-L2-C01", "PLM-L2-C02", "PLM-L2-C03"],
+    "rubric_reference": "PLM-L2-R01",
+    "is_approved": true,
     "max_score": 100,
-    "pass_score": 70
+    "pass_score": 70,
+    "note": "ILLUSTRATIVE ONLY — fictional assessment task and rubric for the CraftRelay SIH demonstration. Not an official NCVT/NSQF task or threshold."
   },
   {
     "id": "task-003",
     "qualification_id": "qual-003",
+    "qualification_code": "CAR-L3",
     "code": "CAR-L3-PT-01",
     "title": "Construct a mortise-and-tenon joint",
     "description": "Candidate produces a through mortise-and-tenon joint from given timber, achieving a snug fit with less than 0.5mm gap.",
@@ -48,7 +59,11 @@
       "Surfaces planed smooth",
       "No tear-out on face side"
     ],
+    "criterion_codes": ["CAR-L3-C01", "CAR-L3-C02", "CAR-L3-C03"],
+    "rubric_reference": "CAR-L3-R01",
+    "is_approved": true,
     "max_score": 100,
-    "pass_score": 75
+    "pass_score": 75,
+    "note": "ILLUSTRATIVE ONLY — fictional assessment task and rubric for the CraftRelay SIH demonstration. Not an official NCVT/NSQF task or threshold."
   }
 ]

@@ -19,8 +19,8 @@ Security model
 
 from __future__ import annotations
 
+import contextlib
 import uuid
-from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -33,14 +33,18 @@ from fastapi import (
 )
 from fastapi.responses import Response
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.core.deps import CurrentUser, DbSession, require_worker_or_admin
 from app.models.competency import EvidenceItem, EvidenceReviewStatus, EvidenceType
 from app.models.user import UserRole
 from app.models.worker_profile import WorkerProfile
 from app.schemas.common import PaginatedResponse, SuccessResponse
-from app.schemas.evidence import EvidenceItemResponse, EvidenceURLCreateRequest
+from app.schemas.evidence import (
+    EvidenceItemResponse,
+    EvidenceReviewRequest,
+    EvidenceURLCreateRequest,
+)
+from app.services.audit import record_audit
 from app.services.storage import StorageError, get_storage_backend, validate_and_store
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
@@ -137,8 +141,10 @@ async def upload_evidence(
         from app.models.competency import CriterionEvidenceMap
         try:
             crit_uuid = uuid.UUID(criterion_id)
-        except ValueError:
-            raise HTTPException(status_code=422, detail="Invalid criterion_id UUID.")
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail="Invalid criterion_id UUID."
+            ) from exc
         mapping = CriterionEvidenceMap(criterion_id=crit_uuid, evidence_item=item)
         db.add(mapping)
 
@@ -265,6 +271,75 @@ async def get_evidence(
     return SuccessResponse(data=EvidenceItemResponse.model_validate(item))
 
 
+# ── Assessor evidence review ──────────────────────────────────────────────────
+
+@router.patch(
+    "/{evidence_id}/review",
+    response_model=SuccessResponse[EvidenceItemResponse],
+    summary="Accept or reject an evidence item (assessor/admin only)",
+)
+async def review_evidence(
+    evidence_id: uuid.UUID,
+    body: EvidenceReviewRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SuccessResponse[EvidenceItemResponse]:
+    """
+    Record an assessor's review of one evidence item.
+
+    • Only assessors and admins may review evidence.
+    • A rejection must include a note explaining why.
+    • The review and its audit record are committed in the same transaction.
+    """
+    if current_user.role not in {UserRole.assessor, UserRole.admin}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only assessors can review evidence.",
+        )
+
+    result = await db.execute(
+        select(EvidenceItem).where(EvidenceItem.id == evidence_id)
+    )
+    item = result.scalar_one_or_none()
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Evidence item not found."
+        )
+
+    note = body.note.strip() if body.note else None
+    if body.review_status == "rejected" and not note:
+        raise HTTPException(
+            status_code=422,
+            detail="A rejection note is required so the worker knows what to fix.",
+        )
+
+    previous_status = item.review_status.value
+    item.review_status = EvidenceReviewStatus(body.review_status)
+    item.review_note = note
+    item.is_verified = item.review_status == EvidenceReviewStatus.accepted
+
+    record_audit(
+        db,
+        actor_id=current_user.id,
+        action="evidence.reviewed",
+        resource_type="evidence_item",
+        resource_id=item.id,
+        description=f"Evidence {body.review_status} by {current_user.full_name}.",
+        payload={
+            "previous_status": previous_status,
+            "review_status": body.review_status,
+            "worker_profile_id": str(item.worker_profile_id),
+        },
+    )
+
+    await db.commit()
+    await db.refresh(item)
+    return SuccessResponse(
+        data=EvidenceItemResponse.model_validate(item),
+        message=f"Evidence marked as {body.review_status}.",
+    )
+
+
 # ── Delete evidence ───────────────────────────────────────────────────────────
 
 @router.delete(
@@ -295,10 +370,9 @@ async def delete_evidence(
     # Remove stored file if any
     if item.stored_filename and item.storage_backend == "local":
         storage = get_storage_backend()
-        try:
+        # Best-effort file cleanup — the DB row is the authoritative record.
+        with contextlib.suppress(Exception):
             storage.delete(item.stored_filename)
-        except Exception:
-            pass  # best-effort — DB row is the authoritative record
 
     await db.delete(item)
     await db.commit()

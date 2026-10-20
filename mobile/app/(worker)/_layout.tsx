@@ -67,6 +67,15 @@ export default function WorkerLayout() {
         }}
       />
       <Tabs.Screen
+        name="assessment"
+        options={{
+          title: "Assessment",
+          tabBarLabel: "Assess",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🧪" focused={focused} />,
+          headerTitle: "Assessment Workspace",
+        }}
+      />
+      <Tabs.Screen
         name="jobs"
         options={{
           title: "Jobs",

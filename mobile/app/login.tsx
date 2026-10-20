@@ -22,13 +22,6 @@ import { TextInput } from "../components/ui/TextInput";
 import { useAuth } from "../context/AuthContext";
 import type { UserRole } from "../types/domain";
 
-const ROLE_OPTIONS: { role: UserRole; label: string; description: string; color: string }[] = [
-  { role: "worker", label: "Worker", description: "Manage your skills and service jobs", color: Colors.roleWorker },
-  { role: "assessor", label: "Assessor", description: "Review and verify worker qualifications", color: Colors.roleAssessor },
-  { role: "customer", label: "Customer", description: "Discover and hire verified workers", color: Colors.roleCustomer },
-  { role: "admin", label: "Admin", description: "Manage the platform and users", color: Colors.roleAdmin },
-];
-
 const ROLE_ROUTES: Record<UserRole, string> = {
   worker: "/(worker)",
   assessor: "/(assessor)",
@@ -38,12 +31,11 @@ const ROLE_ROUTES: Record<UserRole, string> = {
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("rajan.mehta@example.com");
-  const [password, setPassword] = useState("••••••••");
-  const [selectedRole, setSelectedRole] = useState<UserRole>("worker");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showRoleSelect, setShowRoleSelect] = useState(false);
 
   function validate(): boolean {
     const newErrors: typeof errors = {};
@@ -55,15 +47,20 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!validate()) return;
     setLoading(true);
-    // Simulate network delay
-    setTimeout(() => {
-      login(selectedRole);
+    setAuthError(null);
+    try {
+      const signedInUser = await login(email.trim(), password);
+      router.replace(ROLE_ROUTES[signedInUser.role] as never);
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err.message : "Sign in failed. Please try again."
+      );
+    } finally {
       setLoading(false);
-      router.replace(ROLE_ROUTES[selectedRole] as never);
-    }, 800);
+    }
   }
 
   return (
@@ -83,45 +80,6 @@ export default function LoginScreen() {
           </View>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Sign in to your CraftRelay account</Text>
-        </View>
-
-        {/* Demo role note */}
-        <View style={styles.demoNote}>
-          <Text style={styles.demoNoteText}>
-            🎭 <Text style={{ fontWeight: "700" }}>Demo mode:</Text> Select your role below to explore the app as that user type.
-          </Text>
-        </View>
-
-        {/* Role selector */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Sign in as</Text>
-          <View style={styles.roleGrid}>
-            {ROLE_OPTIONS.map(({ role, label, description, color }) => (
-              <Pressable
-                key={role}
-                style={[
-                  styles.roleCard,
-                  selectedRole === role && {
-                    borderColor: color,
-                    backgroundColor: color + "12",
-                  },
-                ]}
-                onPress={() => setSelectedRole(role)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selectedRole === role }}
-              >
-                <View style={[styles.radioCircle, selectedRole === role && { borderColor: color }]}>
-                  {selectedRole === role ? (
-                    <View style={[styles.radioFill, { backgroundColor: color }]} />
-                  ) : null}
-                </View>
-                <View style={styles.roleInfo}>
-                  <Text style={[styles.roleName, selectedRole === role && { color }]}>{label}</Text>
-                  <Text style={styles.roleDesc}>{description}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
         </View>
 
         {/* Form */}
@@ -147,9 +105,11 @@ export default function LoginScreen() {
           />
         </View>
 
-        <Pressable style={styles.forgotLink} accessibilityRole="link">
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </Pressable>
+        {authError ? (
+          <View style={styles.authError}>
+            <Text style={styles.authErrorText}>{authError}</Text>
+          </View>
+        ) : null}
 
         <Button
           label="Sign In"
@@ -279,6 +239,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.primary,
     fontWeight: "500",
+  },
+  authError: {
+    backgroundColor: Colors.errorBg,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  authErrorText: {
+    fontSize: 13,
+    color: Colors.error,
+    lineHeight: 19,
   },
   submitBtn: {
     marginTop: Spacing.sm,
