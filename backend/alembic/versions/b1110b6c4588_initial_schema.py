@@ -10,6 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+import app.db.types  # noqa: F401 — referenced by name in the column definitions
+
 
 # revision identifiers, used by Alembic.
 revision: str = 'b1110b6c4588'

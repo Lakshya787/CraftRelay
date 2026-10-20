@@ -2,9 +2,9 @@
  * app/(assessor)/_layout.tsx — Assessor tab navigator.
  */
 
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Colors } from "../../constants/colors";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
@@ -46,9 +46,20 @@ export default function AssessorLayout() {
         name="review"
         options={{
           title: "Review",
-          tabBarLabel: "Review",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />,
           headerTitle: "Review Assessment",
+          href: null, // opened from the queue with a caseId
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={{ paddingLeft: 16, paddingRight: 8, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Text style={{ fontSize: 15, color: Colors.roleAssessor, fontWeight: "600" }}>
+                ‹ Queue
+              </Text>
+            </Pressable>
+          ),
         }}
       />
       <Tabs.Screen

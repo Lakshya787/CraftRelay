@@ -40,6 +40,58 @@ interface UseWorkerProfileResult {
   updateError: string | null;
 }
 
+export interface WorkerVerificationData {
+  id: string;
+  qualification_id: string;
+  qualification_code: string;
+  qualification_title: string;
+  trade: string;
+  level: number;
+  issuing_body: string;
+  is_illustrative: boolean;
+  status: string;
+  certificate_number: string | null;
+  qualification_version_number: number;
+  awarded_by_id: string | null;
+  created_at: string;
+}
+
+interface UseWorkerVerificationsResult {
+  verifications: WorkerVerificationData[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export function useWorkerVerifications(): UseWorkerVerificationsResult {
+  const [verifications, setVerifications] = useState<WorkerVerificationData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiClient.get<WorkerVerificationData[]>(
+        "/workers/me/verifications"
+      );
+      setVerifications(data);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Failed to load verifications"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { verifications, loading, error, refetch };
+}
+
 export function useWorkerProfile(): UseWorkerProfileResult {
   const [profile, setProfile] = useState<WorkerProfileData | null>(null);
   const [loading, setLoading] = useState(true);

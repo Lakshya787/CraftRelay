@@ -206,6 +206,75 @@ The API is intended to use three response envelope formats. Confirm that individ
 }
 ```
 
+## Assessment Engine (Part 5)
+
+The deterministic evidence-gap-to-task engine lives in
+`backend/app/services/assessment_engine.py` and is exposed under
+`/api/v1/assessments`.
+
+### Criterion states
+
+| State | Meaning |
+|---|---|
+| `GAP` | No evidence is linked to the criterion. |
+| `PENDING_REVIEW` | Evidence is linked but not yet accepted by an assessor. |
+| `ADDITIONAL_EVIDENCE_REQUIRED` | All linked evidence was rejected. |
+| `PRACTICAL_VERIFICATION_REQUIRED` | Evidence is accepted but the linked approved practical task has not passed. |
+| `READY_FOR_ASSESSOR_DECISION` | Evidence and any required practical task are complete — an assessor must still decide. |
+| `VERIFIED` | Formal state only, issued by an authorised assessor decision (Part 6). Never produced by evidence evaluation. |
+
+### Endpoints
+
+| Method | Path | Who |
+|---|---|---|
+| `POST` | `/assessments/cases` | Worker (opens or reuses a case pinned to the latest qualification version) |
+| `GET` | `/assessments/cases` | Worker (own), assessor/admin (all) |
+| `GET` | `/assessments/queue` | Assessor/admin |
+| `GET` | `/assessments/cases/{id}` | Case owner, assessor, admin |
+| `POST` | `/assessments/cases/{id}/submit` | Case owner |
+| `GET` | `/assessments/cases/{id}/mapping-suggestions` | Case owner, assessor, admin |
+| `POST` | `/assessments/cases/{id}/mappings` | Case owner, assessor, admin |
+| `DELETE` | `/assessments/cases/{id}/mappings/{mappingId}` | Case owner, assessor, admin |
+| `GET` | `/assessments/cases/{id}/recommendations` | Case owner, assessor, admin |
+
+Mapping suggestions use deterministic keyword normalisation and lexical
+similarity. The score is a ranking signal in `[0, 1]`, never a probability of
+competence. Criterion IDs are validated against the qualification version
+pinned to the case; unknown or foreign IDs are rejected with HTTP 422.
+
+Only approved, active tasks that carry a rubric reference and reference an
+unresolved criterion are recommended. The worker app shows this workflow on the
+**Assessment** tab (`mobile/app/(worker)/assessment.tsx`).
+
+See [`docs/assessment-engine.md`](docs/assessment-engine.md) for the full rules,
+decisions, and test map.
+
+## Assessor Workflow (Part 6)
+
+Assessors review submitted cases, accept or reject evidence (and the
+evidence→criterion links feeding the engine), record practical results, and
+make criterion-level decisions. Only the final decision creates a
+`CompetencyVerification`.
+
+| Method | Path | Who |
+|---|---|---|
+| `GET` | `/assessments/queue` | Assessor/admin |
+| `PATCH` | `/evidence/{id}/review` | Assessor/admin |
+| `PATCH` | `/assessments/cases/{id}/mappings/{mappingId}/review` | Assessor/admin |
+| `POST` | `/assessments/cases/{id}/criteria/{criterionId}/decision` | Assessor/admin |
+| `POST` | `/assessments/cases/{id}/tasks/{taskId}/result` | Assessor/admin |
+| `POST` | `/assessments/cases/{id}/final-decision` | Assessor/admin |
+
+Non-negotiable controls enforced server-side: workers cannot review their own
+evidence or approve competencies; customers cannot touch assessment results;
+mandatory criteria cannot be skipped or offset by optional ones; a passing
+practical result and accepted evidence are required before a criterion can be
+approved; repeated decisions are idempotent or rejected; every formal change is
+written to the audit log in the same transaction.
+
+See [`docs/assessor-workflow.md`](docs/assessor-workflow.md) for the full rules,
+state transitions, and test map.
+
 ## User Roles
 
 | Role | Key Responsibilities |
@@ -220,20 +289,27 @@ The API is intended to use three response envelope formats. Confirm that individ
 | Phase | Focus | Status |
 |---|---|---|
 | Part 1 | Project foundation, monorepo setup, health check, and Expo startup | Completed |
-| Part 2 | Database models, Alembic migrations, and seed data | Planned |
-| Part 3 | JWT authentication and worker/assessor workflows across API and mobile screens | Planned |
-| Part 4 | AI-assisted skill-gap detection and evidence uploads | Planned |
-| Part 5 | Customer discovery, service requests, and reviews | Planned |
-| Part 6 | Admin dashboard, audit trail, and production hardening | Planned |
+| Part 2 | Mobile UI, navigation, and design system | Completed |
+| Part 3 | Database models, migrations, JWT auth, and role-based access | Completed |
+| Part 4 | Worker profiles, evidence upload/storage, and qualification catalogue | Completed |
+| Part 5 | Deterministic evidence-gap engine, task recommender, and assessment workspace | Completed |
+| Part 6 | Assessor review workflow and formal competency verification | Completed |
+| Part 7 | Customer discovery, service requests, and reviews | Next |
+| Part 8 | Optional AI-assisted mapping with deterministic fallback | Planned |
+| Part 9 | Offline drafts, security review, and end-to-end testing | Planned |
+| Part 10 | Final polish, Android APK, and SIH demo script | Planned |
 
-## Known Limitations — Part 1
+## Current Limitations — Through Part 6
 
-- **Database:** No database connection is implemented yet. The health endpoint is intentionally database-independent.
-- **Authentication:** JWT authentication and authorization are not implemented.
-- **AI integration:** AI-assisted skill assessment and skill-gap detection are not implemented.
+- **Customer screens:** Discovery, worker details, requests, and account still use mock data. They are wired to the marketplace API in Part 7.
+- **Certificate artefacts:** Verification records and certificate numbers are issued, but no PDF/certificate download or expiry workflow exists yet.
+- **Assessor assignment:** The first acting assessor is recorded, but cases are not exclusively assigned to one assessor.
+- **Decision revisions:** A criterion approved or rejected is immutable; only an `additional_evidence_required` decision can be revised. A formal override flow is future work.
+- **AI assistance:** Not implemented. Parts 5–6 use deterministic rules only.
+- **Offline drafts:** Not implemented yet (Part 9).
+- **Chat/realtime:** Not in scope.
 - **Platform support:** Android is the primary target. iOS development and native builds require macOS.
-- **Database setup:** PostgreSQL is planned for Part 2 and is not required for the initial Part 1 setup.
-- **API consistency:** The response formats above describe the intended conventions and may not yet be enforced across all endpoints.
+- **Test database:** The suite runs on SQLite. PostgreSQL-specific behaviour (JSONB, native enums) is exercised only when running against a real PostgreSQL instance.
 
 ## Project Goal
 

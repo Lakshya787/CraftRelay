@@ -1,124 +1,184 @@
 /**
- * app/(assessor)/index.tsx — Assessor assessment queue.
+ * app/(assessor)/index.tsx — Assessor assessment queue (real API).
+ *
+ * Lists submitted / under-review cases from GET /assessments/queue.
+ * Tapping a case opens the review screen with its case ID.
  */
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   FlatList,
   Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { router } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
-import { MOCK_ASSESSMENTS } from "../../data/mockData";
-import { Card } from "../../components/ui/Card";
 import { Avatar } from "../../components/ui/Avatar";
-import { StatusIndicator } from "../../components/shared/StatusIndicator";
 import { Badge } from "../../components/ui/Badge";
+import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { useAuth } from "../../context/AuthContext";
+import { ErrorState } from "../../components/ui/ErrorState";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { useAssessorQueue } from "../../hooks/useAssessorWorkflow";
+import type { AssessmentCaseSummary } from "../../hooks/useAssessments";
 
-const PRIORITY_FILTERS = ["All", "Pending", "In Progress"] as const;
-type PriorityFilter = typeof PRIORITY_FILTERS[number];
+const FILTERS = ["All", "Submitted", "Under Review"] as const;
+type Filter = (typeof FILTERS)[number];
+
+const READINESS_LABEL: Record<string, string> = {
+  NO_CRITERIA: "No criteria",
+  MANDATORY_GAPS_REMAIN: "Mandatory gaps",
+  GAPS_REMAIN: "Gaps remain",
+  READY_FOR_ASSESSOR_DECISION: "Ready for decision",
+};
 
 export default function AssessorQueueScreen() {
-  const { user, logout } = useAuth();
-  const [filter, setFilter] = useState<PriorityFilter>("All");
+  const { cases, loading, error, refetch } = useAssessorQueue();
+  const [filter, setFilter] = useState<Filter>("All");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const myQueue = MOCK_ASSESSMENTS.filter((a) => a.assessor.id === user?.id);
-  const filtered = myQueue.filter((a) => {
-    if (filter === "All") return a.status !== "completed" && a.status !== "cancelled";
-    if (filter === "Pending") return a.status === "pending";
-    if (filter === "In Progress") return a.status === "in_progress";
-    return true;
-  });
+  const filtered = useMemo(
+    () =>
+      cases.filter((item) => {
+        if (filter === "Submitted") return item.status === "submitted";
+        if (filter === "Under Review") return item.status === "under_review";
+        return true;
+      }),
+    [cases, filter]
+  );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }
+
+  if (loading && cases.length === 0) {
+    return <LoadingState message="Loading assessment queue…" fullScreen />;
+  }
+
+  if (error && cases.length === 0) {
+    return <ErrorState title="Queue unavailable" message={error} onRetry={refetch} />;
+  }
 
   return (
     <View style={styles.container}>
-      {/* Header stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{myQueue.filter((a) => a.status === "pending").length}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statValue}>{cases.length}</Text>
+          <Text style={styles.statLabel}>In queue</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: Colors.primary }]}>
-            {myQueue.filter((a) => a.status === "in_progress").length}
+          <Text style={[styles.statValue, { color: Colors.warning }]}>
+            {cases.filter((c) => c.mandatory_blocker_count > 0).length}
           </Text>
-          <Text style={styles.statLabel}>In Progress</Text>
+          <Text style={styles.statLabel}>Mandatory gaps</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: Colors.success }]}>
-            {myQueue.filter((a) => a.status === "completed").length}
+          <Text style={[styles.statValue, { color: Colors.teal }]}>
+            {cases.filter((c) => c.readiness === "READY_FOR_ASSESSOR_DECISION").length}
           </Text>
-          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={styles.statLabel}>Ready</Text>
         </View>
       </View>
 
-      {/* Filter row */}
       <View style={styles.filterRow}>
-        {PRIORITY_FILTERS.map((f) => (
+        {FILTERS.map((item) => (
           <Pressable
-            key={f}
-            style={[styles.filterChip, filter === f && styles.filterChipActive]}
-            onPress={() => setFilter(f)}
+            key={item}
+            style={[styles.filterChip, filter === item && styles.filterChipActive]}
+            onPress={() => setFilter(item)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === item }}
           >
-            <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
-              {f}
+            <Text
+              style={[
+                styles.filterLabel,
+                filter === item && styles.filterLabelActive,
+              ]}
+            >
+              {item}
             </Text>
           </Pressable>
         ))}
       </View>
+
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         ListEmptyComponent={
           <EmptyState
             icon="✅"
             title="Queue is clear"
-            description="All assessments have been reviewed. Well done!"
+            description="Submitted assessment cases will appear here."
           />
         }
-        renderItem={({ item }) => (
-          <Card
-            onPress={() => router.push("/(assessor)/review")}
-            style={styles.queueCard}
-          >
-            <View style={styles.cardHeader}>
-              <Avatar name={item.worker.user.name} size={44} />
-              <View style={styles.cardInfo}>
-                <Text style={styles.workerName}>{item.worker.user.name}</Text>
-                <Text style={styles.qualName}>{item.qualification.title}</Text>
-                <Text style={styles.qualSkill}>{item.qualification.skill.name}</Text>
-              </View>
-              <StatusIndicator status={item.status} />
-            </View>
-
-            <View style={styles.cardFooter}>
-              <Badge
-                label={item.type === "evidence_review" ? "Evidence Review" : "Practical Test"}
-                variant={item.type === "evidence_review" ? "primary" : "teal"}
-                size="sm"
-              />
-              <Text style={styles.evidenceCount}>
-                {item.evidence.length} piece{item.evidence.length !== 1 ? "s" : ""} of evidence
-              </Text>
-              {item.assessorNotes ? (
-                <Text style={styles.notePreview} numberOfLines={1}>
-                  📝 {item.assessorNotes}
-                </Text>
-              ) : null}
-            </View>
-          </Card>
-        )}
+        renderItem={({ item }) => <QueueCard item={item} />}
       />
     </View>
+  );
+}
+
+function QueueCard({ item }: { item: AssessmentCaseSummary }) {
+  const isReady = item.readiness === "READY_FOR_ASSESSOR_DECISION";
+  return (
+    <Card
+      onPress={() =>
+        router.push({
+          pathname: "/(assessor)/review",
+          params: { caseId: item.id },
+        })
+      }
+      style={styles.card}
+    >
+      <View style={styles.cardHeader}>
+        <Avatar name={item.worker_name ?? "Worker"} size={44} />
+        <View style={styles.cardInfo}>
+          <Text style={styles.workerName}>{item.worker_name ?? "Worker"}</Text>
+          <Text style={styles.qualName} numberOfLines={1}>
+            {item.qualification_title}
+          </Text>
+          <Text style={styles.qualMeta}>
+            {item.qualification_code} · v{item.qualification_version_number}
+          </Text>
+        </View>
+        <Badge
+          label={item.status === "under_review" ? "In review" : "Submitted"}
+          variant={item.status === "under_review" ? "primary" : "warning"}
+          size="sm"
+        />
+      </View>
+
+      <View style={styles.cardFooter}>
+        <Badge
+          label={READINESS_LABEL[item.readiness] ?? item.readiness}
+          variant={isReady ? "success" : "default"}
+          size="sm"
+        />
+        {item.mandatory_blocker_count > 0 ? (
+          <Text style={styles.blockerText}>
+            {item.mandatory_blocker_count} mandatory gap
+            {item.mandatory_blocker_count === 1 ? "" : "s"}
+          </Text>
+        ) : null}
+        <Text style={styles.openLabel}>Open ›</Text>
+      </View>
+    </Card>
   );
 }
 
@@ -126,16 +186,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
     backgroundColor: Colors.backgroundCard,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
-    paddingVertical: Spacing.base,
-    paddingHorizontal: Spacing.base,
   },
-  statItem: { alignItems: "center", gap: 3 },
-  statValue: { fontSize: 24, fontWeight: "800", color: Colors.warning },
-  statLabel: { fontSize: 11, color: Colors.textMuted },
+  statItem: { flex: 1, alignItems: "center" },
+  statValue: { fontSize: 22, fontWeight: "700", color: Colors.textPrimary },
+  statLabel: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
   filterRow: {
     flexDirection: "row",
     gap: Spacing.sm,
@@ -144,26 +202,47 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
+    paddingVertical: 6,
     borderRadius: Radius.full,
-    backgroundColor: Colors.backgroundCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.backgroundMuted,
   },
-  filterChipActive: {
-    backgroundColor: Colors.roleAssessor,
-    borderColor: Colors.roleAssessor,
-  },
-  filterLabel: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
+  filterChipActive: { backgroundColor: Colors.roleAssessor },
+  filterLabel: { fontSize: 12, fontWeight: "600", color: Colors.textSecondary },
   filterLabelActive: { color: Colors.white },
-  list: { paddingHorizontal: Spacing.base, paddingBottom: Spacing["4xl"] },
-  queueCard: { gap: Spacing.md },
-  cardHeader: { flexDirection: "row", gap: Spacing.md, alignItems: "flex-start" },
-  cardInfo: { flex: 1, gap: 2 },
-  workerName: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary },
-  qualName: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
-  qualSkill: { fontSize: 12, color: Colors.textMuted },
-  cardFooter: { gap: Spacing.xs },
-  evidenceCount: { fontSize: 12, color: Colors.textMuted },
-  notePreview: { fontSize: 12, color: Colors.textMuted, fontStyle: "italic" },
+  list: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing["4xl"],
+  },
+  card: { gap: Spacing.md },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  cardInfo: { flex: 1 },
+  workerName: { fontSize: 15, fontWeight: "700", color: Colors.textPrimary },
+  qualName: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  qualMeta: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+    paddingTop: Spacing.sm,
+  },
+  blockerText: { fontSize: 11, color: Colors.warning, flex: 1 },
+  openLabel: { fontSize: 12, fontWeight: "700", color: Colors.roleAssessor },
+  errorBanner: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.errorBg,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  errorText: { fontSize: 12, color: Colors.error },
 });
