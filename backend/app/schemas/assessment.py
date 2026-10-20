@@ -57,6 +57,18 @@ class MappingReviewRequest(BaseModel):
     decision: Literal["confirmed", "rejected"]
     note: str | None = Field(default=None, max_length=2000)
 
+    @model_validator(mode="before")
+    @classmethod
+    def map_aliases(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            # Allow 'status' as an alias for 'decision'
+            if "status" in data and "decision" not in data:
+                data["decision"] = data["status"]
+            # Allow 'assessor_note' as alias for 'note'
+            if "assessor_note" in data and "note" not in data:
+                data["note"] = data["assessor_note"]
+        return data
+
 
 class CreateMappingRequest(BaseModel):
     criterion_id: uuid.UUID

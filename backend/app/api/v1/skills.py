@@ -73,6 +73,11 @@ async def list_skills(
     response_model=SuccessResponse[list[WorkerSkillResponse]],
     summary="List my declared skills",
 )
+@router.get(
+    "/skills/workers/me/skills",
+    response_model=SuccessResponse[list[WorkerSkillResponse]],
+    summary="List my declared skills (alias)",
+)
 async def list_my_skills(
     current_user: CurrentUser,
     db: DbSession,
@@ -98,6 +103,13 @@ async def list_my_skills(
     response_model=SuccessResponse[WorkerSkillResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Declare a skill",
+    dependencies=[require_worker_or_admin],
+)
+@router.post(
+    "/skills/workers/me/skills",
+    response_model=SuccessResponse[WorkerSkillResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Declare a skill (alias)",
     dependencies=[require_worker_or_admin],
 )
 async def declare_skill(

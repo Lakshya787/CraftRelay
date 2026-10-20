@@ -620,6 +620,11 @@ async def assessor_queue(
     response_model=SuccessResponse[CaseWorkspaceResponse],
     summary="Get an assessment workspace with criterion-level states",
 )
+@router.get(
+    "/cases/{case_id}/workspace",
+    response_model=SuccessResponse[CaseWorkspaceResponse],
+    summary="Get an assessment workspace with criterion-level states (alias)",
+)
 async def get_case(
     case_id: uuid.UUID,
     current_user: CurrentUser,
@@ -837,6 +842,11 @@ async def create_mapping(
     "/cases/{case_id}/mappings/{mapping_id}/review",
     response_model=SuccessResponse[MappingResponse],
     summary="Confirm or reject an evidence→criterion link (assessor/admin only)",
+)
+@router.post(
+    "/cases/{case_id}/mappings/{mapping_id}/review",
+    response_model=SuccessResponse[MappingResponse],
+    summary="Confirm or reject an evidence→criterion link (assessor/admin only) (POST alias)",
 )
 async def review_mapping(
     case_id: uuid.UUID,
