@@ -5,20 +5,26 @@ Import-order matters here: SQLAlchemy resolves relationships by string name,
 so all models must be imported before Alembic inspects the metadata.
 """
 
-from app.models.user import User, UserRole
-from app.models.worker_profile import WorkerProfile
-from app.models.skill import Skill
-from app.models.worker_skill import WorkerSkill
-from app.models.qualification import Qualification, QualificationVersion
-from app.models.competency import CompetencyCriterion, EvidenceItem, EvidenceReviewStatus, CriterionEvidenceMap
 from app.models.assessment import (
-    AssessmentCase,
     ApprovedAssessmentTask,
+    AssessmentCase,
     AssessmentResult,
     CompetencyVerification,
+    CriterionAssessmentDecision,
+    CriterionDecisionStatus,
 )
-from app.models.service import ServiceRequest, ServiceCompletion, CustomerReview
 from app.models.audit import AuditLog
+from app.models.competency import (
+    CompetencyCriterion,
+    CriterionEvidenceMap,
+    EvidenceItem,
+)
+from app.models.qualification import Qualification, QualificationVersion
+from app.models.service import CustomerReview, ServiceCompletion, ServiceRequest
+from app.models.skill import Skill
+from app.models.user import User, UserRole
+from app.models.worker_profile import WorkerProfile
+from app.models.worker_skill import WorkerSkill
 
 __all__ = [
     "User",
@@ -35,6 +41,8 @@ __all__ = [
     "ApprovedAssessmentTask",
     "AssessmentResult",
     "CompetencyVerification",
+    "CriterionAssessmentDecision",
+    "CriterionDecisionStatus",
     "ServiceRequest",
     "ServiceCompletion",
     "CustomerReview",

@@ -22,7 +22,7 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function login(email: string, password: string): Promise<void> {
+  async function login(email: string, password: string): Promise<User> {
     const tokenData = await apiClient.post<TokenResponse>("/auth/login", {
       email,
       password,
@@ -83,11 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await SecureStore.setItemAsync(TOKEN_KEY, access_token);
     setToken(access_token);
 
-    // Fetch user profile
+    // Fetch user profile — the role always comes from the backend.
     const userData = await apiClient.get<UserResponse>("/auth/me", {
       headers: { Authorization: `Bearer ${access_token}` },
     });
-    setUser(mapUserResponse(userData));
+    const mapped = mapUserResponse(userData);
+    setUser(mapped);
+    return mapped;
   }
 
   async function logout(): Promise<void> {

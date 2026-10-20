@@ -48,6 +48,14 @@ class VerificationStatus(str, enum.Enum):
     revoked = "revoked"
 
 
+class CriterionDecisionStatus(str, enum.Enum):
+    """Formal assessor decisions recorded per criterion."""
+
+    approved = "approved"
+    rejected = "rejected"
+    additional_evidence_required = "additional_evidence_required"
+
+
 class AssessmentCase(Base, TimestampMixin):
     """
     A single competency assessment request from a worker.
@@ -113,6 +121,11 @@ class AssessmentCase(Base, TimestampMixin):
         back_populates="assessment_case",
         cascade="all, delete-orphan",
     )
+    criterion_decisions: Mapped[list[CriterionAssessmentDecision]] = relationship(
+        "CriterionAssessmentDecision",
+        back_populates="assessment_case",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<AssessmentCase id={self.id} status={self.status}>"
@@ -148,6 +161,14 @@ class ApprovedAssessmentTask(Base, TimestampMixin):
     estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer)
     required_tools: Mapped[list | None] = mapped_column(JSONBType)
     assessment_criteria: Mapped[list | None] = mapped_column(JSONBType)
+    # Criterion codes from the qualification that this task verifies.
+    # The recommender only proposes tasks whose codes trace back to an
+    # existing criterion in the case's qualification version.
+    criterion_codes: Mapped[list | None] = mapped_column(JSONBType)
+    # Rubric reference approved for this task (performance-element code).
+    rubric_reference: Mapped[str | None] = mapped_column(String(100))
+    # Only approved, active tasks with a rubric may be recommended.
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     max_score: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     pass_score: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -172,6 +193,10 @@ class AssessmentResult(Base, TimestampMixin):
     __tablename__ = "assessment_results"
     __table_args__ = (
         CheckConstraint("score >= 0", name="ck_result_score_positive"),
+        UniqueConstraint(
+            "assessment_case_id", "task_id",
+            name="uq_assessment_result_case_task",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -203,6 +228,81 @@ class AssessmentResult(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<AssessmentResult case={self.assessment_case_id} passed={self.passed}>"
+
+
+class CriterionAssessmentDecision(Base, TimestampMixin):
+    """
+    One formal decision per criterion per assessment case.
+
+    • The unique constraint prevents duplicate decisions from repeated requests.
+    • ``qualification_version_id`` pins the decision to the version that was
+      active when the case was opened.
+    • ``assessor_id`` and timestamps preserve who decided and when.
+    • The row may be revised only from ``additional_evidence_required`` to a
+      terminal decision; approved/rejected decisions are immutable here.
+    """
+
+    __tablename__ = "criterion_assessment_decisions"
+    __table_args__ = (
+        UniqueConstraint(
+            "assessment_case_id", "criterion_id",
+            name="uq_criterion_decision_case_criterion",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    assessment_case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    criterion_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("competency_criteria.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    assessor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    qualification_version_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("qualification_versions.id"),
+        nullable=False,
+    )
+    decision: Mapped[CriterionDecisionStatus] = mapped_column(
+        Enum(CriterionDecisionStatus, name="criterion_decision_enum"),
+        nullable=False,
+        index=True,
+    )
+    # pass | fail | not_applicable — the rubric outcome recorded by the assessor
+    rubric_result: Mapped[str | None] = mapped_column(String(20))
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+
+    assessment_case: Mapped[AssessmentCase] = relationship(
+        "AssessmentCase", back_populates="criterion_decisions"
+    )
+    criterion: Mapped[CompetencyCriterion] = relationship(  # noqa: F821
+        "CompetencyCriterion"
+    )
+    assessor: Mapped[User] = relationship("User", foreign_keys=[assessor_id])  # noqa: F821
+    qualification_version: Mapped[QualificationVersion] = relationship(  # noqa: F821
+        "QualificationVersion"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<CriterionAssessmentDecision criterion={self.criterion_id} "
+            f"decision={self.decision}>"
+        )
 
 
 class CompetencyVerification(Base, TimestampMixin):
@@ -270,6 +370,7 @@ class CompetencyVerification(Base, TimestampMixin):
         )
 
 
-from app.models.worker_profile import WorkerProfile  # noqa: E402
-from app.models.qualification import QualificationVersion, Qualification  # noqa: E402
+from app.models.competency import CompetencyCriterion  # noqa: E402
+from app.models.qualification import Qualification, QualificationVersion  # noqa: E402
 from app.models.user import User  # noqa: E402
+from app.models.worker_profile import WorkerProfile  # noqa: E402

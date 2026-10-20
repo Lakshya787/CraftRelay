@@ -25,7 +25,10 @@ import {
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { useAuth } from "../../context/AuthContext";
-import { useWorkerProfile } from "../../hooks/useWorkerProfile";
+import {
+  useWorkerProfile,
+  useWorkerVerifications,
+} from "../../hooks/useWorkerProfile";
 import {
   useWorkerSkills,
   useSkillCatalogue,
@@ -66,6 +69,10 @@ export default function WorkerProfileScreen() {
     useWorkerProfile();
   const { skills: mySkills, loading: skillsLoading, refetch: refetchSkills } =
     useWorkerSkills();
+  const {
+    verifications,
+    loading: verificationsLoading,
+  } = useWorkerVerifications();
   const { skills: catalogue, loading: catalogueLoading } = useSkillCatalogue();
   const { declare, submitting: declaring } = useDeclareSkill();
   const { remove, removing } = useRemoveSkill();
@@ -464,6 +471,66 @@ export default function WorkerProfileScreen() {
           )}
         </Card>
 
+        {/* Verified competencies — formal assessor decisions only */}
+        <Card>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.sectionTitle}>Verified Competencies</Text>
+            <Badge
+              label={`${verifications.filter((v) => v.status === "verified").length} verified`}
+              variant="success"
+              size="sm"
+            />
+          </View>
+          <Divider spacing={Spacing.sm} />
+
+          {verificationsLoading ? (
+            <ActivityIndicator color={Colors.primary} />
+          ) : verifications.length === 0 ? (
+            <Text style={styles.emptyHint}>
+              No competencies verified yet. Submit evidence and complete an
+              assessor review to earn one.
+            </Text>
+          ) : (
+            <View style={styles.skillList}>
+              {verifications.map((verification) => (
+                <View key={verification.id} style={styles.verificationRow}>
+                  <View style={styles.verificationInfo}>
+                    <Text style={styles.verificationTitle}>
+                      {verification.qualification_title}
+                    </Text>
+                    <Text style={styles.verificationMeta}>
+                      {verification.qualification_code} · v
+                      {verification.qualification_version_number} ·{" "}
+                      {verification.issuing_body}
+                    </Text>
+                    {verification.certificate_number ? (
+                      <Text style={styles.verificationCert}>
+                        Certificate {verification.certificate_number}
+                      </Text>
+                    ) : null}
+                    {verification.is_illustrative ? (
+                      <Text style={styles.verificationNote}>
+                        Illustrative qualification — not an official standard
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Badge
+                    label={
+                      verification.status === "verified"
+                        ? "Verified"
+                        : verification.status
+                    }
+                    variant={
+                      verification.status === "verified" ? "success" : "default"
+                    }
+                    size="sm"
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
+
         {/* Assessment progress note */}
         <Card style={styles.assessmentNote}>
           <Text style={styles.assessmentNoteTitle}>📊 Assessment Progress</Text>
@@ -688,6 +755,30 @@ const styles = StyleSheet.create({
   emptyHint: { fontSize: 13, color: Colors.textMuted, fontStyle: "italic" },
 
   skillList: { gap: Spacing.md },
+  verificationRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  verificationInfo: { flex: 1, gap: 2 },
+  verificationTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  verificationMeta: { fontSize: 11, color: Colors.textSecondary },
+  verificationCert: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.tealDark,
+  },
+  verificationNote: { fontSize: 10, color: Colors.textMuted },
+
   skillRow: {
     flexDirection: "row",
     justifyContent: "space-between",

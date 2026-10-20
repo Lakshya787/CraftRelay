@@ -12,6 +12,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -176,6 +177,25 @@ class CriterionEvidenceMap(Base, TimestampMixin):
         index=True,
     )
     assessor_note: Mapped[str | None] = mapped_column(Text)
+    # How the link was created: 'manual' (worker selected), 'suggested'
+    # (worker accepted a deterministic suggestion) or 'assessor'.
+    mapping_source: Mapped[str] = mapped_column(
+        String(20), default="manual", nullable=False
+    )
+    # Assessor review of this evidence→criterion link.
+    # pending = not reviewed; confirmed = link accepted; rejected = link removed
+    # from the engine's evidence set (the evidence row itself is unchanged).
+    mapping_status: Mapped[str] = mapped_column(
+        String(20), default="pending", nullable=False
+    )
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+    )
+    # Deterministic lexical match score (0..1). Never a probability of
+    # competence — a ranking signal for human review only.
+    match_score: Mapped[float | None] = mapped_column(Numeric(4, 3))
+    match_explanation: Mapped[str | None] = mapped_column(Text)
 
     criterion: Mapped[CompetencyCriterion] = relationship(
         "CompetencyCriterion", back_populates="evidence_mappings"

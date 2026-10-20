@@ -26,7 +26,6 @@ Security controls applied here
 
 from __future__ import annotations
 
-import imghdr
 import io
 import os
 import struct

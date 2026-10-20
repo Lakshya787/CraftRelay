@@ -27,10 +27,8 @@ Run AFTER alembic upgrade head.
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-import uuid
 
 # Ensure the backend root is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -160,6 +158,8 @@ QUALIFICATIONS = [
                     "Labelling legible and accurate",
                     "Insulation resistance >= 1 MΩ",
                 ],
+                "criterion_codes": ["ELE-L2-C01", "ELE-L2-C02", "ELE-L2-C03", "ELE-L2-C04"],
+                "rubric_reference": "ELE-L2-R01",
                 "max_score": 100,
                 "pass_score": 70,
             }
@@ -212,6 +212,8 @@ QUALIFICATIONS = [
                     "Waste drains within 30 seconds",
                     "Trap accessible for cleaning",
                 ],
+                "criterion_codes": ["PLM-L2-C01", "PLM-L2-C02", "PLM-L2-C03"],
+                "rubric_reference": "PLM-L2-R01",
                 "max_score": 100,
                 "pass_score": 70,
             }
@@ -261,6 +263,8 @@ QUALIFICATIONS = [
                     "Surfaces planed smooth",
                     "No tear-out on face side",
                 ],
+                "criterion_codes": ["CAR-L3-C01", "CAR-L3-C02", "CAR-L3-C03"],
+                "rubric_reference": "CAR-L3-R01",
                 "max_score": 100,
                 "pass_score": 75,
             }
@@ -439,7 +443,21 @@ def seed() -> None:
                 existing = session.query(ApprovedAssessmentTask).filter_by(
                     code=task_data["code"]
                 ).first()
-                if not existing:
+                # Upsert so re-running the seed adds Part 5 criterion links and
+                # rubric references to tasks created by earlier phases.
+                if existing:
+                    existing.qualification_id = qual.id
+                    existing.title = task_data["title"]
+                    existing.description = task_data.get("description")
+                    existing.estimated_duration_minutes = task_data.get("estimated_duration_minutes")
+                    existing.required_tools = task_data.get("required_tools")
+                    existing.assessment_criteria = task_data.get("assessment_criteria")
+                    existing.criterion_codes = task_data.get("criterion_codes")
+                    existing.rubric_reference = task_data.get("rubric_reference")
+                    existing.is_approved = True
+                    existing.max_score = task_data.get("max_score", 100)
+                    existing.pass_score = task_data.get("pass_score", 70)
+                else:
                     session.add(ApprovedAssessmentTask(
                         qualification_id=qual.id,
                         code=task_data["code"],
@@ -448,6 +466,9 @@ def seed() -> None:
                         estimated_duration_minutes=task_data.get("estimated_duration_minutes"),
                         required_tools=task_data.get("required_tools"),
                         assessment_criteria=task_data.get("assessment_criteria"),
+                        criterion_codes=task_data.get("criterion_codes"),
+                        rubric_reference=task_data.get("rubric_reference"),
+                        is_approved=True,
                         max_score=task_data.get("max_score", 100),
                         pass_score=task_data.get("pass_score", 70),
                     ))
