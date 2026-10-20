@@ -25,7 +25,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -68,30 +68,30 @@ class AssessmentCase(Base, TimestampMixin):
     __tablename__ = "assessment_cases"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     qualification_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualifications.id"),
         nullable=False,
         index=True,
     )
     # Snapshot of the version at case-creation time — never updated.
     qualification_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualification_versions.id"),
         nullable=False,
     )
     assessor_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
         index=True,
     )
@@ -145,12 +145,12 @@ class ApprovedAssessmentTask(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     qualification_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualifications.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -200,18 +200,18 @@ class AssessmentResult(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     assessment_case_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("assessment_cases.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     task_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("approved_assessment_tasks.id"),
         nullable=False,
     )
@@ -251,30 +251,30 @@ class CriterionAssessmentDecision(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     assessment_case_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("assessment_cases.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     criterion_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("competency_criteria.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     assessor_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
     qualification_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualification_versions.id"),
         nullable=False,
     )
@@ -322,25 +322,25 @@ class CompetencyVerification(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     qualification_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualifications.id"),
         nullable=False,
         index=True,
     )
     # Version at award time — immutable.
     qualification_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualification_versions.id"),
         nullable=False,
     )
@@ -351,7 +351,7 @@ class CompetencyVerification(Base, TimestampMixin):
         index=True,
     )
     awarded_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
     )
     certificate_number: Mapped[str | None] = mapped_column(String(100), unique=True)

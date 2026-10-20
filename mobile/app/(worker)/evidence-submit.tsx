@@ -32,6 +32,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { useQualifications } from "../../hooks/useQualifications";
+import { useWorkerProfile } from "../../hooks/useWorkerProfile";
+import { useEvidenceDrafts } from "../../hooks/useEvidenceDrafts";
 import {
   useMyEvidence,
   useSubmitFileEvidence,
@@ -118,6 +120,7 @@ interface SelectedFile {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EvidenceSubmitScreen() {
+  const { profile } = useWorkerProfile();
   const { qualifications, loading: qualsLoading } = useQualifications();
   const { items: myEvidence, loading: evidenceLoading, refetch: refetchEvidence } =
     useMyEvidence();
@@ -125,6 +128,16 @@ export default function EvidenceSubmitScreen() {
     useSubmitFileEvidence();
   const { submit: submitUrl, submitting: uploadingUrl, error: urlError } =
     useSubmitURLEvidence();
+  const {
+    drafts,
+    loading: draftsLoading,
+    syncingId,
+    syncProgress,
+    saveAsDraft,
+    removeDraft,
+    syncSingleDraft,
+    syncAllPending,
+  } = useEvidenceDrafts(profile?.id);
 
   const [form, setForm] = useState<FormState>({
     title: "",
@@ -136,9 +149,44 @@ export default function EvidenceSubmitScreen() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const isURLMode = form.evidenceType === "other";
-  const isSubmitting = uploadingFile || uploadingUrl;
+  const isSubmitting = uploadingFile || uploadingUrl || savingDraft;
+
+  async function handleSaveDraft() {
+    if (form.title.trim().length < 3) {
+      setErrors((e) => ({
+        ...e,
+        title: "Title must be at least 3 characters to save draft.",
+      }));
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      await saveAsDraft({
+        title: form.title,
+        description: form.description,
+        evidence_type: form.evidenceType,
+        file_uri: selectedFile?.uri,
+        file_name: selectedFile?.name,
+        mime_type: selectedFile?.type,
+        file_url: form.url || null,
+        criterion_id: form.criterionId || null,
+      });
+      Alert.alert(
+        "Draft Saved (Offline)",
+        "Evidence draft was saved locally on this device. You can sync it whenever your connection returns."
+      );
+      setForm({ title: "", description: "", evidenceType: "photo", url: "", criterionId: "" });
+      setSelectedFile(null);
+      setErrors({});
+    } catch (err: any) {
+      Alert.alert("Draft Save Failed", err.message || "Failed to save local draft.");
+    } finally {
+      setSavingDraft(false);
+    }
+  }
 
   function update<K extends keyof FormState>(field: K) {
     return (value: FormState[K]) => {
@@ -284,6 +332,96 @@ export default function EvidenceSubmitScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+
+      {/* Offline Draft Capture Notice & Drafts List */}
+      {drafts.length > 0 && (
+        <Card style={styles.draftsContainer}>
+          <View style={styles.draftsHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.draftsTitle}>📦 Offline Drafts ({drafts.length})</Text>
+              <Text style={styles.draftsSubtitle}>
+                Stored locally on this device. Sync when connection returns.
+              </Text>
+            </View>
+            {drafts.some((d) => d.sync_status === "draft" || d.sync_status === "failed") && (
+              <Button
+                label="Sync All"
+                variant="primary"
+                size="sm"
+                onPress={syncAllPending}
+                loading={syncingId !== null}
+              />
+            )}
+          </View>
+
+          <View style={styles.draftsList}>
+            {drafts.map((draft) => {
+              const isSyncing = syncingId === draft.id;
+              let badgeVariant: "default" | "warning" | "success" | "error" = "default";
+              let badgeLabel = "Draft (Offline)";
+              if (isSyncing) {
+                badgeVariant = "warning";
+                badgeLabel = `Syncing (${syncProgress}%)`;
+              } else if (draft.sync_status === "synced") {
+                badgeVariant = "success";
+                badgeLabel = "Synced ✓";
+              } else if (draft.sync_status === "failed") {
+                badgeVariant = "error";
+                badgeLabel = "Sync Failed";
+              } else if (draft.sync_status === "conflict") {
+                badgeVariant = "error";
+                badgeLabel = "Conflict";
+              }
+
+              return (
+                <View key={draft.id} style={styles.draftItem}>
+                  <View style={styles.draftItemRow}>
+                    <Text style={styles.draftItemIcon}>
+                      {draft.evidence_type === "photo" ? "📷" : draft.file_url ? "🔗" : "📄"}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.draftItemTitle} numberOfLines={1}>
+                        {draft.title}
+                      </Text>
+                      {draft.file_name && (
+                        <Text style={styles.draftItemMeta} numberOfLines={1}>
+                          {draft.file_name}
+                        </Text>
+                      )}
+                      {draft.sync_error && (
+                        <Text style={styles.draftItemError} numberOfLines={2}>
+                          {draft.sync_error}
+                        </Text>
+                      )}
+                    </View>
+                    <Badge label={badgeLabel} variant={badgeVariant} size="sm" />
+                  </View>
+
+                  <View style={styles.draftActions}>
+                    {draft.sync_status !== "synced" && (
+                      <Pressable
+                        style={[styles.draftActionBtn, styles.draftSyncBtn]}
+                        onPress={() => syncSingleDraft(draft.id)}
+                        disabled={isSyncing}
+                      >
+                        <Text style={styles.draftSyncBtnText}>
+                          {draft.sync_status === "failed" ? "Retry Sync" : "Sync Now"}
+                        </Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      style={[styles.draftActionBtn, styles.draftDeleteBtn]}
+                      onPress={() => removeDraft(draft.id)}
+                    >
+                      <Text style={styles.draftDeleteBtnText}>Delete</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Card>
+      )}
 
       {/* Step 1 — Qualification & criterion */}
       <View style={styles.section}>
@@ -447,14 +585,23 @@ export default function EvidenceSubmitScreen() {
           </Text>
         </View>
       ) : (
-        <Button
-          label="Submit Evidence"
-          variant="primary"
-          size="lg"
-          fullWidth
-          onPress={handleSubmit}
-          style={styles.submitBtn}
-        />
+        <View style={{ gap: Spacing.sm, marginTop: Spacing.sm }}>
+          <Button
+            label="Submit Evidence"
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={handleSubmit}
+            style={styles.submitBtn}
+          />
+          <Button
+            label="Save as Offline Draft 💾"
+            variant="outline"
+            size="md"
+            fullWidth
+            onPress={handleSaveDraft}
+          />
+        </View>
       )}
 
       {/* Previous evidence */}
@@ -689,4 +836,90 @@ const styles = StyleSheet.create({
   },
   reviewNoteLabel: { fontSize: 11, fontWeight: "700", color: Colors.warning },
   reviewNoteText: { fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+
+  // ── Offline Drafts styles ───────────────────────────────────────────────────
+  draftsContainer: {
+    backgroundColor: Colors.backgroundCard,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + "30",
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  draftsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  draftsTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  draftsSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  draftsList: {
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  draftItem: {
+    padding: Spacing.sm,
+    backgroundColor: Colors.backgroundMuted,
+    borderRadius: Radius.sm,
+    gap: Spacing.xs,
+  },
+  draftItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  draftItemIcon: {
+    fontSize: 18,
+  },
+  draftItemTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  draftItemMeta: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  draftItemError: {
+    fontSize: 11,
+    color: Colors.error,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  draftActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
+  draftActionBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: Radius.sm,
+  },
+  draftSyncBtn: {
+    backgroundColor: Colors.primary,
+  },
+  draftSyncBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Colors.white,
+  },
+  draftDeleteBtn: {
+    backgroundColor: Colors.error + "15",
+  },
+  draftDeleteBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.error,
+  },
 });

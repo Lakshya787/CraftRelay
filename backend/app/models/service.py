@@ -21,7 +21,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -43,18 +43,18 @@ class ServiceRequest(Base, TimestampMixin):
     __tablename__ = "service_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id"),
         nullable=False,
         index=True,
@@ -108,12 +108,12 @@ class ServiceCompletion(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     service_request_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("service_requests.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -141,23 +141,23 @@ class CustomerReview(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     service_request_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("service_requests.id", ondelete="CASCADE"),
         nullable=False,
     )
     customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id"),
         nullable=False,
         index=True,

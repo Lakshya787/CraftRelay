@@ -29,9 +29,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
-
-from app.db.types import JSONBType
+from app.db.types import JSONBType, UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -51,7 +49,7 @@ class Qualification(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
@@ -117,12 +115,12 @@ class QualificationVersion(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     qualification_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualifications.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

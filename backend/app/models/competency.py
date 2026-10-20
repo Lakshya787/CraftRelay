@@ -17,7 +17,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import JSONBType, UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -51,12 +51,12 @@ class CompetencyCriterion(Base, TimestampMixin):
     __tablename__ = "competency_criteria"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     qualification_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("qualifications.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -94,12 +94,12 @@ class EvidenceItem(Base, TimestampMixin):
     __tablename__ = "evidence_items"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -160,18 +160,18 @@ class CriterionEvidenceMap(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     criterion_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("competency_criteria.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     evidence_item_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("evidence_items.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -189,7 +189,7 @@ class CriterionEvidenceMap(Base, TimestampMixin):
         String(20), default="pending", nullable=False
     )
     reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id"),
     )
     # Deterministic lexical match score (0..1). Never a probability of

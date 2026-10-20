@@ -142,6 +142,12 @@ async def get_my_profile(
     summary="Update own worker profile",
     dependencies=[require_worker_or_admin],
 )
+@router.put(
+    "/me",
+    response_model=SuccessResponse[WorkerProfileResponse],
+    summary="Update own worker profile",
+    dependencies=[require_worker_or_admin],
+)
 async def update_my_profile(
     body: WorkerProfileUpdateRequest,
     current_user: CurrentUser,

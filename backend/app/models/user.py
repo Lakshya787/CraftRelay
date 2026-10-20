@@ -11,7 +11,7 @@ import enum
 import uuid
 
 from sqlalchemy import Boolean, Enum, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -44,7 +44,7 @@ class User(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
         index=True,

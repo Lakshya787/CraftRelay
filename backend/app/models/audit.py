@@ -7,11 +7,10 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.db.types import JSONBType
+from app.db.types import JSONBType, UUIDType
 
 
 class AuditLog(Base, TimestampMixin):
@@ -30,12 +29,12 @@ class AuditLog(Base, TimestampMixin):
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     actor_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
     )

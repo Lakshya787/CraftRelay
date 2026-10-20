@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -25,7 +25,7 @@ class Skill(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )

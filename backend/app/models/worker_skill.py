@@ -8,7 +8,7 @@ import enum
 import uuid
 
 from sqlalchemy import Enum, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from app.db.types import UUIDType
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -35,18 +35,18 @@ class WorkerSkill(Base, TimestampMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         primary_key=True,
         default=uuid.uuid4,
     )
     worker_profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("worker_profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     skill_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("skills.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
