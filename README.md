@@ -284,7 +284,7 @@ state transitions, and test map.
 | **Customer** | Discover verified workers, request services, and submit reviews |
 | **Admin** | Manage qualifications, assessment tasks, users, and audit records |
 
-## Development Roadmap
+## Current Status
 
 | Phase | Focus | Status |
 |---|---|---|
@@ -294,22 +294,22 @@ state transitions, and test map.
 | Part 4 | Worker profiles, evidence upload/storage, and qualification catalogue | Completed |
 | Part 5 | Deterministic evidence-gap engine, task recommender, and assessment workspace | Completed |
 | Part 6 | Assessor review workflow and formal competency verification | Completed |
-| Part 7 | Customer discovery, service requests, and reviews | Next |
-| Part 8 | Optional AI-assisted mapping with deterministic fallback | Planned |
-| Part 9 | Offline drafts, security review, and end-to-end testing | Planned |
-| Part 10 | Final polish, Android APK, and SIH demo script | Planned |
+| Part 7 | Customer discovery, service requests, and reviews | Implemented; verify against deployed backend |
+| Part 8 | Optional AI-assisted mapping with deterministic fallback | Deterministic mapping available; AI provider availability is environment-dependent |
+| Part 9 | Offline drafts, security review, and integration testing | Evidence draft capture only; see reliability report |
+| Part 10 | Android APK and SIH demo script | EAS APK profile configured; cloud build/device verification remains environment-dependent |
 
-## Current Limitations — Through Part 6
+## Known Limitations
 
-- **Customer screens:** Discovery, worker details, requests, and account still use mock data. They are wired to the marketplace API in Part 7.
+- **Offline support:** Only evidence draft capture is designed to persist locally and synchronize later; discovery, assessment, and service workflows require connectivity.
 - **Certificate artefacts:** Verification records and certificate numbers are issued, but no PDF/certificate download or expiry workflow exists yet.
 - **Assessor assignment:** The first acting assessor is recorded, but cases are not exclusively assigned to one assessor.
 - **Decision revisions:** A criterion approved or rejected is immutable; only an `additional_evidence_required` decision can be revised. A formal override flow is future work.
 - **AI assistance:** Not implemented. Parts 5–6 use deterministic rules only.
-- **Offline drafts:** Not implemented yet (Part 9).
 - **Chat/realtime:** Not in scope.
 - **Platform support:** Android is the primary target. iOS development and native builds require macOS.
 - **Test database:** The suite runs on SQLite. PostgreSQL-specific behaviour (JSONB, native enums) is exercised only when running against a real PostgreSQL instance.
+- **Demo infrastructure:** A deployed HTTPS API, EAS project linkage, and a physical Android device are needed to complete install and deployed-environment verification. See [`docs/sih-demo.md`](docs/sih-demo.md).
 
 ## Project Goal
 

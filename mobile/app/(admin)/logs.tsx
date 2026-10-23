@@ -15,6 +15,7 @@ import {
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { MOCK_AUDIT_LOGS } from "../../data/mockData";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { Divider } from "../../components/ui/Divider";
@@ -23,7 +24,7 @@ import { Card } from "../../components/ui/Card";
 
 type ActionCategory = "all" | "assessment" | "evidence" | "user" | "service_request";
 
-const ACTION_FILTERS: Array<{ label: string; value: ActionCategory }> = [
+const ACTION_FILTERS: { label: string; value: ActionCategory }[] = [
   { label: "All", value: "all" },
   { label: "Assessments", value: "assessment" },
   { label: "Evidence", value: "evidence" },
@@ -59,6 +60,7 @@ export default function AdminLogsScreen() {
 
   return (
     <View style={styles.container}>
+      <IllustrativeDataNotice />
       {/* Filter chips */}
       <View style={styles.filterRow}>
         {ACTION_FILTERS.map(({ label, value }) => (

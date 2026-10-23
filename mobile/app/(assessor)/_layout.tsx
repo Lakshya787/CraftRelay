@@ -5,10 +5,7 @@
 import { Tabs, router } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Pressable, Text } from "react-native";
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
-}
+import { TabIcon } from "../../components/shared/TabIcon";
 
 export default function AssessorLayout() {
   return (
@@ -38,7 +35,7 @@ export default function AssessorLayout() {
         options={{
           title: "Assessment Queue",
           tabBarLabel: "Queue",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="queue" focused={focused} />,
           headerTitle: "Assessment Queue",
         }}
       />
@@ -67,7 +64,7 @@ export default function AssessorLayout() {
         options={{
           title: "History",
           tabBarLabel: "History",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="history" focused={focused} />,
           headerTitle: "Assessment History",
         }}
       />

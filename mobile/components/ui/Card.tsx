@@ -24,6 +24,7 @@ export function Card({ children, style, onPress, padded = true }: CardProps) {
   if (onPress) {
     return (
       <Pressable
+        testID="craftrelay-card"
         style={({ pressed }) => [
           styles.card,
           padded && styles.padded,
@@ -39,7 +40,7 @@ export function Card({ children, style, onPress, padded = true }: CardProps) {
   }
 
   return (
-    <View style={[styles.card, padded && styles.padded, style]}>
+    <View testID="craftrelay-card" style={[styles.card, padded && styles.padded, style]}>
       {children}
     </View>
   );

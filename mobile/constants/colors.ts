@@ -6,48 +6,52 @@
  * only need to happen in one place.
  */
 
+import { Platform } from "react-native";
+
+const webPalette = Platform.OS === "web";
+
 export const Colors = {
   // ── Brand — Navy + Teal ────────────────────────────────────────────────────
-  primary: "#0F4C81",       // Navy 700 — primary action
-  primaryDark: "#0A3561",   // Navy 800 — pressed state
-  primaryLight: "#1A6DB5",  // Navy 600 — hover / highlight
-  teal: "#0D9488",          // Teal 600 — accent / verified
-  tealLight: "#14B8A6",     // Teal 500 — lighter teal
-  tealDark: "#0F766E",      // Teal 700 — dark teal
+  primary: webPalette ? "#ff4d4d" : "#0F4C81",
+  primaryDark: webPalette ? "#df3838" : "#0A3561",
+  primaryLight: webPalette ? "#ff7777" : "#1A6DB5",
+  teal: webPalette ? "#2d5da1" : "#0D9488",
+  tealLight: webPalette ? "#527bb2" : "#14B8A6",
+  tealDark: webPalette ? "#204a84" : "#0F766E",
 
   // ── Background ─────────────────────────────────────────────────────────────
-  background: "#F7F9FC",      // Near-white page background
-  backgroundCard: "#FFFFFF",  // Card surfaces
-  backgroundMuted: "#EEF2F7", // Muted sections, chips
-  backgroundDark: "#0C2D4E",  // Dark header or splash areas
+  background: webPalette ? "#fdfbf7" : "#F7F9FC",
+  backgroundCard: "#FFFFFF",
+  backgroundMuted: webPalette ? "#e5e0d8" : "#EEF2F7",
+  backgroundDark: webPalette ? "#2d2d2d" : "#0C2D4E",
 
   // ── Text ───────────────────────────────────────────────────────────────────
-  textPrimary: "#0F172A",    // Near-black — primary text
-  textSecondary: "#4B5563",  // Gray 600 — secondary text
+  textPrimary: webPalette ? "#2d2d2d" : "#0F172A",
+  textSecondary: webPalette ? "#55504a" : "#4B5563",
   textMuted: "#9CA3AF",      // Gray 400 — placeholder / disabled
   textInverse: "#FFFFFF",    // White — on dark surfaces
-  textLink: "#0F4C81",       // Navy — links
+  textLink: webPalette ? "#2d5da1" : "#0F4C81",
 
   // ── Border & Dividers ──────────────────────────────────────────────────────
-  border: "#D1D9E6",      // Subtle borders
-  borderFocus: "#0F4C81", // Focus ring colour
-  divider: "#E5EAF2",     // Divider lines
+  border: webPalette ? "#2d2d2d" : "#D1D9E6",
+  borderFocus: webPalette ? "#2d5da1" : "#0F4C81",
+  divider: webPalette ? "#e5e0d8" : "#E5EAF2",
 
   // ── Status ─────────────────────────────────────────────────────────────────
-  success: "#16A34A",      // Green 600
+  success: webPalette ? "#2d5da1" : "#16A34A",
   successBg: "#DCFCE7",    // Green 100
-  warning: "#D97706",      // Amber 600
+  warning: webPalette ? "#b98200" : "#D97706",
   warningBg: "#FEF3C7",    // Amber 100
-  error: "#DC2626",        // Red 600
+  error: webPalette ? "#ff4d4d" : "#DC2626",
   errorBg: "#FEE2E2",      // Red 100
   info: "#0284C7",         // Sky 600
   infoBg: "#E0F2FE",       // Sky 100
 
   // ── Roles ──────────────────────────────────────────────────────────────────
-  roleWorker: "#0F4C81",    // Navy
-  roleAssessor: "#7C3AED",  // Violet
-  roleCustomer: "#0D9488",  // Teal
-  roleAdmin: "#D97706",     // Amber
+  roleWorker: webPalette ? "#2d5da1" : "#0F4C81",
+  roleAssessor: webPalette ? "#ff4d4d" : "#7C3AED",
+  roleCustomer: webPalette ? "#2d5da1" : "#0D9488",
+  roleAdmin: webPalette ? "#b98200" : "#D97706",
 
   // ── Neutral ────────────────────────────────────────────────────────────────
   white: "#FFFFFF",
@@ -64,8 +68,8 @@ export const Colors = {
   gray900: "#111827",
 
   // ── Tab bar ────────────────────────────────────────────────────────────────
-  tabBarBackground: "#FFFFFF",
-  tabBarActive: "#0F4C81",
+  tabBarBackground: webPalette ? "#fffdf8" : "#FFFFFF",
+  tabBarActive: webPalette ? "#ff4d4d" : "#0F4C81",
   tabBarInactive: "#9CA3AF",
 } as const;
 

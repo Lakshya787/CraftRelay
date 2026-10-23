@@ -314,10 +314,22 @@ async def test_full_craftrelay_end_to_end_workflow(
         assert rev_map.status_code == 200
 
     # ── 9. Assessor Criterion Decisions & Practical Task Scoring ──────────────
-    dec_c01 = await client.post(
-        f"{ASSESSMENTS_URL}/cases/{case_id}/decisions",
+    # A mandatory criterion can only be approved after its required practical
+    # task has passed; the API enforces that rule server-side.
+    score_resp = await client.post(
+        f"{ASSESSMENTS_URL}/cases/{case_id}/tasks/{task_pt.id}/result",
         json={
-            "criterion_id": str(c01.id),
+            "score": 88.0,
+            "commentary": "Excellent execution. Polarity and insulation resistance tested successfully.",
+        },
+        headers=_auth(assessor_token),
+    )
+    assert score_resp.status_code == 200, score_resp.text
+    assert score_resp.json()["data"]["passed"] is True
+
+    dec_c01 = await client.post(
+        f"{ASSESSMENTS_URL}/cases/{case_id}/criteria/{c01.id}/decision",
+        json={
             "decision": "approved",
             "rationale": "Safety isolation evidence matches rubric RUB-ELE-01.",
             "rubric_result": "pass",
@@ -327,9 +339,8 @@ async def test_full_craftrelay_end_to_end_workflow(
     assert dec_c01.status_code == 200
 
     dec_c02 = await client.post(
-        f"{ASSESSMENTS_URL}/cases/{case_id}/decisions",
+        f"{ASSESSMENTS_URL}/cases/{case_id}/criteria/{c02.id}/decision",
         json={
-            "criterion_id": str(c02.id),
             "decision": "approved",
             "rationale": "Socket wiring meets rubric RUB-ELE-02.",
             "rubric_result": "pass",
@@ -338,22 +349,10 @@ async def test_full_craftrelay_end_to_end_workflow(
     )
     assert dec_c02.status_code == 200
 
-    # Score practical task (Score: 88, Passing: 70)
-    score_resp = await client.post(
-        f"{ASSESSMENTS_URL}/cases/{case_id}/tasks/{task_pt.id}/score",
-        json={
-            "score": 88.0,
-            "assessor_commentary": "Excellent execution. Polarity and insulation resistance tested successfully.",
-        },
-        headers=_auth(assessor_token),
-    )
-    assert score_resp.status_code == 200
-    assert score_resp.json()["data"]["passed"] is True
-
     # ── 10. Formal Competency Verification Approval ───────────────────────────
     final_resp = await client.post(
         f"{ASSESSMENTS_URL}/cases/{case_id}/final-decision",
-        json={"outcome": "approved", "notes": "Candidate satisfies all mandatory criteria."},
+        json={"outcome": "approved", "rationale": "Candidate satisfies all mandatory criteria."},
         headers=_auth(assessor_token),
     )
     assert final_resp.status_code == 200
@@ -370,7 +369,7 @@ async def test_full_craftrelay_end_to_end_workflow(
 
     # ── 12. Customer Marketplace Discovery (Verified Worker) ──────────────────
     discover_resp = await client.get(
-        f"{MARKETPLACE_URL}/workers?skill_id={trade_skill.id}&verified_only=true",
+        f"{WORKERS_URL}?skill=Domestic%20Wiring&verified_only=true",
         headers=_auth(customer_token),
     )
     assert discover_resp.status_code == 200
@@ -378,8 +377,12 @@ async def test_full_craftrelay_end_to_end_workflow(
     assert len(workers_found) >= 1
     found_worker = next(w for w in workers_found if w["id"] == worker_profile_id)
     assert found_worker["trade_title"] == "Master Electrician"
-    assert found_worker["is_verified"] is True
-    assert found_worker["verified_skills_count"] >= 1
+    verifications_resp = await client.get(
+        f"{WORKERS_URL}/{worker_profile_id}/verifications",
+        headers=_auth(customer_token),
+    )
+    assert verifications_resp.status_code == 200
+    assert len(verifications_resp.json()["data"]) >= 1
 
     # ── 13. Service Request Creation ──────────────────────────────────────────
     sr_create_resp = await client.post(

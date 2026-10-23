@@ -18,6 +18,7 @@ import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { useAuth } from "../../context/AuthContext";
 import { MOCK_CUSTOMER_USER, MOCK_SERVICE_REQUESTS } from "../../data/mockData";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 import { Card } from "../../components/ui/Card";
 import { Avatar } from "../../components/ui/Avatar";
 import { Divider } from "../../components/ui/Divider";
@@ -99,6 +100,7 @@ export default function CustomerAccountScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+      <IllustrativeDataNotice />
       {/* Profile hero */}
       <Card style={styles.heroCard}>
         <View style={styles.heroTop}>

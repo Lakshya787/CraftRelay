@@ -1,7 +1,7 @@
 /**
  * app/login.tsx — Login screen.
  *
- * Part 2: Uses mock auth with role selector for navigation demo.
+ * Authenticates against the saved backend account and routes by assigned role.
  */
 
 import React, { useState } from "react";
@@ -42,7 +42,7 @@ export default function LoginScreen() {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!email.includes("@")) newErrors.email = "Enter a valid email address";
     if (!password) newErrors.password = "Password is required";
-    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else if (password.length < 8) newErrors.password = "Password must be at least 8 characters";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -122,7 +122,7 @@ export default function LoginScreen() {
         />
 
         <View style={styles.registerRow}>
-          <Text style={styles.registerText}>Don't have an account? </Text>
+        <Text style={styles.registerText}>Don&apos;t have an account? </Text>
           <Pressable onPress={() => router.push("/register")} accessibilityRole="link">
             <Text style={styles.registerLink}>Register</Text>
           </Pressable>

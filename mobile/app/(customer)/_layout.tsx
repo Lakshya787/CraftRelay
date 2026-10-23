@@ -7,10 +7,7 @@ import { Tabs, router, usePathname } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Text, Pressable } from "react-native";
 import { useAuth } from "../../context/AuthContext";
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
-}
+import { TabIcon } from "../../components/shared/TabIcon";
 
 export default function CustomerLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -58,7 +55,7 @@ export default function CustomerLayout() {
         options={{
           title: "Discover Workers",
           tabBarLabel: "Discover",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="discover" focused={focused} />,
           headerTitle: "Find a Professional",
         }}
       />
@@ -67,7 +64,7 @@ export default function CustomerLayout() {
         options={{
           title: "My Requests",
           tabBarLabel: "My Requests",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="requests" focused={focused} />,
           headerTitle: "My Service Requests",
         }}
       />
@@ -76,7 +73,7 @@ export default function CustomerLayout() {
         options={{
           title: "Profile",
           tabBarLabel: "Profile",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
           headerTitle: "Customer Profile",
         }}
       />

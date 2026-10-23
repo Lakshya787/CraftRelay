@@ -15,6 +15,7 @@ import {
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { MOCK_ASSESSMENTS } from "../../data/mockData";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 import type { AssessmentStatus } from "../../types/domain";
 import { Card } from "../../components/ui/Card";
 import { Avatar } from "../../components/ui/Avatar";
@@ -25,7 +26,7 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 
 type Filter = "all" | AssessmentStatus;
 
-const FILTERS: Array<{ label: string; value: Filter }> = [
+const FILTERS: { label: string; value: Filter }[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "In Progress", value: "in_progress" },
@@ -47,6 +48,7 @@ export default function AdminAssessmentsScreen() {
 
   return (
     <View style={styles.container}>
+      <IllustrativeDataNotice />
       {/* Summary bar */}
       <View style={styles.summaryBar}>
         <View style={styles.summaryItem}>

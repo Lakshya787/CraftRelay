@@ -14,24 +14,29 @@ import { router } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { useAuth } from "../../context/AuthContext";
-import { MOCK_WORKER_PROFILE, MOCK_ASSESSMENTS, MOCK_SERVICE_REQUESTS } from "../../data/mockData";
+import { useWorkerProfile, useWorkerVerifications } from "../../hooks/useWorkerProfile";
+import { useAssessmentCases } from "../../hooks/useAssessments";
+import { useServiceRequests } from "../../hooks/useMarketplace";
 import { Card } from "../../components/ui/Card";
-import { ProgressBar } from "../../components/ui/ProgressBar";
-import { StatusIndicator } from "../../components/shared/StatusIndicator";
-import { ServiceRequestCard } from "../../components/shared/ServiceRequestCard";
 import { Button } from "../../components/ui/Button";
 import { Avatar } from "../../components/ui/Avatar";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { ErrorState } from "../../components/ui/ErrorState";
 
 export default function WorkerDashboard() {
   const { user, logout } = useAuth();
-  const worker = MOCK_WORKER_PROFILE;
-  const myAssessments = MOCK_ASSESSMENTS.filter((a) => a.worker.user.id === user?.id);
-  const myJobs = MOCK_SERVICE_REQUESTS.filter(
-    (r) => r.worker?.user.id === user?.id && r.status !== "completed"
-  );
-
-  const verifiedCount = worker.skills.filter((s) => s.verificationStatus === "verified").length;
-  const pendingCount = worker.skills.filter((s) => s.verificationStatus === "pending").length;
+  const { profile, loading: profileLoading, error: profileError, refetch: refetchProfile } = useWorkerProfile();
+  const { verifications, loading: verificationsLoading, error: verificationsError, refetch: refetchVerifications } = useWorkerVerifications();
+  const { cases, loading: casesLoading, error: casesError, refetch: refetchCases } = useAssessmentCases();
+  const { requests, loading: requestsLoading, error: requestsError, refetch: refetchRequests } = useServiceRequests();
+  const loading = profileLoading || verificationsLoading || casesLoading || requestsLoading;
+  const error = profileError || verificationsError || casesError || requestsError;
+  const verifiedCount = verifications.filter((v) => v.status === "verified").length;
+  const activeCases = cases.filter((c) => !["approved", "rejected", "withdrawn"].includes(c.status));
+  const activeJobs = requests.filter((r) => ["requested", "accepted", "in_progress", "completion_pending"].includes(r.status));
+  async function retryDashboard() {
+    await Promise.all([refetchProfile(), refetchVerifications(), refetchCases(), refetchRequests()]);
+  }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
@@ -46,49 +51,40 @@ export default function WorkerDashboard() {
         </Pressable>
       </View>
 
-      {/* Profile completeness */}
-      {worker.profileCompleteness < 100 ? (
+      {loading ? <LoadingState message="Loading your saved profile…" /> : null}
+      {error ? <ErrorState message={error} onRetry={retryDashboard} /> : null}
+      {profile && !loading ? (
         <Card style={styles.completenessCard}>
-          <View style={styles.completenessHeader}>
-            <Text style={styles.completenessTitle}>Complete your profile</Text>
-            <Text style={styles.completenessPercent}>{worker.profileCompleteness}%</Text>
-          </View>
-          <ProgressBar value={worker.profileCompleteness} color={Colors.primary} />
+          <Text style={styles.completenessTitle}>{profile.trade_title || "Add your trade"}</Text>
           <Text style={styles.completenessHint}>
-            A complete profile gets 3× more service requests.
+            {[profile.city, profile.state].filter(Boolean).join(", ") || "Add your location"}
           </Text>
-          <Button
-            label="Update Profile"
-            variant="outline"
-            size="sm"
-            onPress={() => router.push("/(worker)/profile")}
-            style={styles.completenessBtn}
-          />
+          <Button label="View Profile" variant="outline" size="sm" onPress={() => router.push("/(worker)/profile")} style={styles.completenessBtn} />
         </Card>
       ) : null}
 
       {/* Stats */}
       <View style={styles.statsGrid}>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{worker.completedJobs}</Text>
+          <Text style={styles.statValue}>{requests.filter((r) => r.status === "completed").length}</Text>
           <Text style={styles.statLabel}>Completed Jobs</Text>
         </Card>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>★ {worker.rating.toFixed(1)}</Text>
+          <Text style={styles.statValue}>★ {profile?.average_rating?.toFixed(1) ?? "—"}</Text>
           <Text style={styles.statLabel}>Rating</Text>
         </Card>
         <Card style={styles.statCard}>
           <Text style={[styles.statValue, { color: Colors.success }]}>{verifiedCount}</Text>
-          <Text style={styles.statLabel}>Verified Skills</Text>
+          <Text style={styles.statLabel}>Verified Qualifications</Text>
         </Card>
         <Card style={styles.statCard}>
-          <Text style={[styles.statValue, { color: Colors.warning }]}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>Under Review</Text>
+          <Text style={[styles.statValue, { color: Colors.warning }]}>{activeCases.length}</Text>
+          <Text style={styles.statLabel}>Active Assessments</Text>
         </Card>
       </View>
 
       {/* Assessments */}
-      {myAssessments.length > 0 ? (
+      {activeCases.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Active Assessments</Text>
@@ -96,28 +92,22 @@ export default function WorkerDashboard() {
               <Text style={styles.seeAll}>See all</Text>
             </Pressable>
           </View>
-          {myAssessments.slice(0, 2).map((a) => (
+          {activeCases.slice(0, 2).map((a) => (
             <Card key={a.id} style={styles.assessmentCard}>
               <View style={styles.assessmentRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.assessmentTitle}>{a.qualification.title}</Text>
-                  <Text style={styles.assessmentSub}>{a.qualification.skill.name}</Text>
+                  <Text style={styles.assessmentTitle}>{a.qualification_title}</Text>
+                  <Text style={styles.assessmentSub}>{a.unresolved_criterion_count} criteria need follow-up</Text>
                 </View>
-                <StatusIndicator status={a.status} />
+                <Text style={styles.assessmentSub}>{a.status.replaceAll("_", " ")}</Text>
               </View>
-              {a.overallScore !== undefined ? (
-                <View style={styles.scoreRow}>
-                  <ProgressBar value={a.overallScore} color={Colors.success} />
-                  <Text style={styles.scoreText}>{a.overallScore}/100</Text>
-                </View>
-              ) : null}
             </Card>
           ))}
         </View>
       ) : null}
 
       {/* Active jobs */}
-      {myJobs.length > 0 ? (
+      {activeJobs.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Active Jobs</Text>
@@ -125,14 +115,7 @@ export default function WorkerDashboard() {
               <Text style={styles.seeAll}>See all</Text>
             </Pressable>
           </View>
-          {myJobs.slice(0, 2).map((sr) => (
-            <ServiceRequestCard
-              key={sr.id}
-              request={sr}
-              perspective="worker"
-              onPress={() => router.push(`/(worker)/jobs`)}
-            />
-          ))}
+          {activeJobs.slice(0, 2).map((job) => <Card key={job.id}><Text style={styles.assessmentTitle}>{job.title}</Text><Text style={styles.assessmentSub}>{job.status.replaceAll("_", " ")}</Text></Card>)}
         </View>
       ) : null}
 
@@ -180,7 +163,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   greeting: { fontSize: 14, color: Colors.textSecondary },
-  name: { fontSize: 22, fontWeight: "800", color: Colors.textPrimary },
+  name: { fontSize: 22, fontWeight: "800", color: Colors.textPrimary, flexShrink: 1 },
   completenessCard: {
     gap: Spacing.sm,
     backgroundColor: "#EBF2FF",

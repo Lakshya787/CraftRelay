@@ -13,6 +13,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { MOCK_WORKERS, MOCK_REVIEWS } from "../../data/mockData";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Avatar } from "../../components/ui/Avatar";
@@ -49,6 +50,7 @@ export default function WorkerDetailScreen() {
   return (
     <>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+        <IllustrativeDataNotice />
         {/* Hero */}
         <View style={styles.hero}>
           <Avatar name={worker.user.name} size={80} />

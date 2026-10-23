@@ -9,7 +9,7 @@
  *  • Deletion of drafts
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   EvidenceDraft,
   listDrafts,
@@ -21,16 +21,19 @@ import {
 export function useEvidenceDrafts(workerId?: string) {
   const [drafts, setDrafts] = useState<EvidenceDraft[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncProgress, setSyncProgress] = useState<number>(0);
+  const retryingRef = useRef(false);
 
   const refreshDrafts = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const items = await listDrafts(workerId);
       setDrafts(items);
-    } catch (err) {
-      console.warn("[useEvidenceDrafts] Failed to load drafts:", err);
+    } catch {
+      setLoadError("Saved drafts could not be loaded. Try refreshing this screen.");
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,35 @@ export function useEvidenceDrafts(workerId?: string) {
   useEffect(() => {
     refreshDrafts();
   }, [refreshDrafts]);
+
+  // Network restoration does not need a separate native dependency: failed
+  // network drafts are retried periodically while this screen is mounted.
+  // Validation/auth failures remain visible for manual correction or sign-in.
+  useEffect(() => {
+    if (!workerId) return;
+    const timer = setInterval(async () => {
+      if (retryingRef.current) return;
+      retryingRef.current = true;
+      try {
+        const pending = await listDrafts(workerId);
+        for (const draft of pending) {
+          if (
+            draft.sync_status === "failed" &&
+            draft.sync_error?.includes("Unable to reach CraftRelay")
+          ) {
+            await syncDraftWithServer(draft);
+          }
+        }
+        await refreshDrafts();
+      } catch {
+        // The draft remains in its persisted state and is retried on the next
+        // interval; storage and network errors are shown through draft status.
+      } finally {
+        retryingRef.current = false;
+      }
+    }, 20_000);
+    return () => clearInterval(timer);
+  }, [workerId, refreshDrafts]);
 
   const saveAsDraft = async (data: {
     id?: string;
@@ -110,6 +142,7 @@ export function useEvidenceDrafts(workerId?: string) {
   return {
     drafts,
     loading,
+    loadError,
     syncingId,
     syncProgress,
     refreshDrafts,

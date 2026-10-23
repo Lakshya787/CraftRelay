@@ -8,6 +8,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "../context/AuthContext";
+import { Colors } from "../constants/colors";
 
 export default function RootLayout() {
   return (
@@ -15,11 +16,11 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#FFFFFF" },
-          headerTintColor: "#0F172A",
-          headerTitleStyle: { fontWeight: "700", fontSize: 17 },
+          headerStyle: { backgroundColor: Colors.backgroundCard },
+          headerTintColor: Colors.textPrimary,
+          headerTitleStyle: { fontWeight: "700", fontSize: 17, color: Colors.textPrimary },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: "#F7F9FC" },
+          contentStyle: { backgroundColor: Colors.background },
           headerBackTitle: "Back",
         }}
       >

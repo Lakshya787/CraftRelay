@@ -104,6 +104,9 @@ class EvidenceItem(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
+    # Client supplied only for retryable draft submissions; globally unique so
+    # a lost response cannot create a second saved evidence record.
+    client_submission_id: Mapped[str | None] = mapped_column(String(100), unique=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     evidence_type: Mapped[EvidenceType] = mapped_column(

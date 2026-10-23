@@ -186,7 +186,7 @@ export default function RegisterScreen() {
         </View>
 
         <Text style={styles.terms}>
-          By registering, you agree to CraftRelay's{" "}
+          By registering, you agree to CraftRelay&apos;s{" "}
           <Text style={styles.termsLink}>Terms of Service</Text> and{" "}
           <Text style={styles.termsLink}>Privacy Policy</Text>.
         </Text>

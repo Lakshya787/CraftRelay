@@ -6,11 +6,7 @@
 
 import { Tabs } from "expo-router";
 import { Colors } from "../../constants/colors";
-import { Text } from "react-native";
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
-}
+import { TabIcon } from "../../components/shared/TabIcon";
 
 export default function AdminLayout() {
   return (
@@ -40,7 +36,7 @@ export default function AdminLayout() {
         options={{
           title: "Admin Dashboard",
           tabBarLabel: "Overview",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="overview" focused={focused} />,
           headerTitle: "Admin Overview",
         }}
       />
@@ -49,7 +45,7 @@ export default function AdminLayout() {
         options={{
           title: "Users",
           tabBarLabel: "Users",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👥" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="users" focused={focused} />,
           headerTitle: "User Management",
         }}
       />
@@ -58,7 +54,7 @@ export default function AdminLayout() {
         options={{
           title: "Assessments",
           tabBarLabel: "Assessments",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="queue" focused={focused} />,
           headerTitle: "All Assessments",
         }}
       />
@@ -67,7 +63,7 @@ export default function AdminLayout() {
         options={{
           title: "Audit Logs",
           tabBarLabel: "Logs",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📜" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="audit" focused={focused} />,
           headerTitle: "Audit Log",
         }}
       />

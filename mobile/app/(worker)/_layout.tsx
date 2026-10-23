@@ -5,10 +5,7 @@
 import { Tabs, router } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { Text, Pressable } from "react-native";
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
-}
+import { TabIcon } from "../../components/shared/TabIcon";
 
 export default function WorkerLayout() {
   return (
@@ -44,7 +41,7 @@ export default function WorkerLayout() {
         options={{
           title: "Dashboard",
           tabBarLabel: "Home",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
           headerTitle: "My Dashboard",
         }}
       />
@@ -53,7 +50,7 @@ export default function WorkerLayout() {
         options={{
           title: "Profile",
           tabBarLabel: "Profile",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
           headerTitle: "My Profile",
         }}
       />
@@ -62,7 +59,7 @@ export default function WorkerLayout() {
         options={{
           title: "Qualifications",
           tabBarLabel: "Skills",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏆" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="skills" focused={focused} />,
           headerTitle: "My Qualifications",
         }}
       />
@@ -71,7 +68,7 @@ export default function WorkerLayout() {
         options={{
           title: "Assessment",
           tabBarLabel: "Assess",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🧪" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="assessment" focused={focused} />,
           headerTitle: "Assessment Workspace",
         }}
       />
@@ -80,7 +77,7 @@ export default function WorkerLayout() {
         options={{
           title: "Jobs",
           tabBarLabel: "Jobs",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💼" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="jobs" focused={focused} />,
           headerTitle: "Service Requests",
         }}
       />

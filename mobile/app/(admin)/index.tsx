@@ -27,6 +27,7 @@ import { Card } from "../../components/ui/Card";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { Divider } from "../../components/ui/Divider";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 
 interface StatTileProps {
   value: number | string;
@@ -72,6 +73,7 @@ export default function AdminDashboard() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+      <IllustrativeDataNotice />
       {/* Admin greeting */}
       <View style={styles.greetRow}>
         <View>

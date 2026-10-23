@@ -52,12 +52,12 @@ import { EmptyState } from "../../components/ui/EmptyState";
 const MAX_FILE_MB = 15;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
-const EVIDENCE_TYPE_OPTIONS: Array<{
+const EVIDENCE_TYPE_OPTIONS: {
   type: EvidenceType;
   label: string;
   icon: string;
   description: string;
-}> = [
+}[] = [
   { type: "photo", label: "Photo", icon: "📷", description: "Photograph of your work" },
   { type: "video", label: "Video", icon: "🎥", description: "Short video demonstration" },
   { type: "certificate", label: "Certificate", icon: "🏅", description: "Training or certification document" },
@@ -131,6 +131,8 @@ export default function EvidenceSubmitScreen() {
   const {
     drafts,
     loading: draftsLoading,
+    loadError: draftsError,
+    refreshDrafts,
     syncingId,
     syncProgress,
     saveAsDraft,
@@ -334,7 +336,7 @@ export default function EvidenceSubmitScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
 
       {/* Offline Draft Capture Notice & Drafts List */}
-      {drafts.length > 0 && (
+      {(draftsLoading || draftsError || drafts.length > 0) && (
         <Card style={styles.draftsContainer}>
           <View style={styles.draftsHeader}>
             <View style={{ flex: 1 }}>
@@ -353,6 +355,14 @@ export default function EvidenceSubmitScreen() {
               />
             )}
           </View>
+
+          {draftsLoading && <ActivityIndicator color={Colors.primary} />}
+          {draftsError && (
+            <View>
+              <Text style={styles.draftItemError}>{draftsError}</Text>
+              <Button label="Retry loading drafts" variant="outline" size="sm" onPress={refreshDrafts} />
+            </View>
+          )}
 
           <View style={styles.draftsList}>
             {drafts.map((draft) => {
@@ -398,7 +408,7 @@ export default function EvidenceSubmitScreen() {
                   </View>
 
                   <View style={styles.draftActions}>
-                    {draft.sync_status !== "synced" && (
+                    {draft.sync_status !== "synced" && draft.sync_status !== "conflict" && (
                       <Pressable
                         style={[styles.draftActionBtn, styles.draftSyncBtn]}
                         onPress={() => syncSingleDraft(draft.id)}

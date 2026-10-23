@@ -26,6 +26,7 @@ from fastapi import (
     APIRouter,
     File,
     Form,
+    Header,
     HTTPException,
     Query,
     UploadFile,
@@ -35,7 +36,12 @@ from fastapi.responses import Response
 from sqlalchemy import select
 
 from app.core.deps import CurrentUser, DbSession, require_worker_or_admin
-from app.models.competency import EvidenceItem, EvidenceReviewStatus, EvidenceType
+from app.models.competency import (
+    CompetencyCriterion,
+    EvidenceItem,
+    EvidenceReviewStatus,
+    EvidenceType,
+)
 from app.models.user import UserRole
 from app.models.worker_profile import WorkerProfile
 from app.schemas.common import PaginatedResponse, SuccessResponse
@@ -83,6 +89,29 @@ async def _get_own_evidence(
     return item
 
 
+async def _validate_criterion_id(criterion_id: uuid.UUID | None, db: DbSession) -> None:
+    """Reject dangling evidence-to-criterion links as a client error."""
+    if criterion_id is not None and await db.get(CompetencyCriterion, criterion_id) is None:
+        raise HTTPException(
+            status_code=422,
+            detail="criterion_id does not identify a valid criterion.",
+        )
+
+
+async def _existing_submission(
+    worker_profile_id: uuid.UUID, submission_id: str | None, db: DbSession
+) -> EvidenceItem | None:
+    if not submission_id:
+        return None
+    result = await db.execute(
+        select(EvidenceItem).where(
+            EvidenceItem.worker_profile_id == worker_profile_id,
+            EvidenceItem.client_submission_id == submission_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 # ── Upload file evidence ──────────────────────────────────────────────────────
 
 @router.post(
@@ -100,6 +129,9 @@ async def upload_evidence(
     description: str = Form(None),
     evidence_type: EvidenceType = Form(EvidenceType.photo),
     criterion_id: str = Form(None, description="UUID of the CompetencyCriterion this evidence supports"),
+    idempotency_key: str | None = Header(
+        None, alias="Idempotency-Key", max_length=100
+    ),
 ) -> SuccessResponse[EvidenceItemResponse]:
     """
     Upload a file as an evidence item.
@@ -110,6 +142,17 @@ async def upload_evidence(
     • Maximum size: 15 MB.
     """
     profile = await _get_worker_profile(current_user.id, db)
+    previous = await _existing_submission(profile.id, idempotency_key, db)
+    if previous:
+        return SuccessResponse(
+            data=EvidenceItemResponse.model_validate(previous),
+            message="Evidence upload already recorded.",
+        )
+    try:
+        crit_uuid = uuid.UUID(criterion_id) if criterion_id else None
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Invalid criterion_id UUID.") from exc
+    await _validate_criterion_id(crit_uuid, db)
 
     # Read file data
     file_data = await file.read()
@@ -132,19 +175,14 @@ async def upload_evidence(
         description=description,
         evidence_type=evidence_type,
         review_status=EvidenceReviewStatus.pending,
+        client_submission_id=idempotency_key,
         **storage_meta,
     )
     db.add(item)
 
     # Optionally map to a criterion
-    if criterion_id:
+    if crit_uuid:
         from app.models.competency import CriterionEvidenceMap
-        try:
-            crit_uuid = uuid.UUID(criterion_id)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422, detail="Invalid criterion_id UUID."
-            ) from exc
         mapping = CriterionEvidenceMap(criterion_id=crit_uuid, evidence_item=item)
         db.add(mapping)
 
@@ -169,9 +207,19 @@ async def submit_url_evidence(
     body: EvidenceURLCreateRequest,
     current_user: CurrentUser,
     db: DbSession,
+    idempotency_key: str | None = Header(
+        None, alias="Idempotency-Key", max_length=100
+    ),
 ) -> SuccessResponse[EvidenceItemResponse]:
     """Submit a URL link as an evidence item (no file upload)."""
     profile = await _get_worker_profile(current_user.id, db)
+    previous = await _existing_submission(profile.id, idempotency_key, db)
+    if previous:
+        return SuccessResponse(
+            data=EvidenceItemResponse.model_validate(previous),
+            message="Evidence submission already recorded.",
+        )
+    await _validate_criterion_id(body.criterion_id, db)
 
     item = EvidenceItem(
         worker_profile_id=profile.id,
@@ -181,6 +229,7 @@ async def submit_url_evidence(
         review_status=EvidenceReviewStatus.pending,
         file_url=str(body.url),
         storage_backend="url",
+        client_submission_id=idempotency_key,
     )
     db.add(item)
 
@@ -267,6 +316,8 @@ async def get_evidence(
         profile = await _get_worker_profile(current_user.id, db)
         if item.worker_profile_id != profile.id:
             raise HTTPException(status_code=403, detail="Access denied.")
+    elif current_user.role not in {UserRole.assessor, UserRole.admin}:
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     return SuccessResponse(data=EvidenceItemResponse.model_validate(item))
 
@@ -366,6 +417,8 @@ async def delete_evidence(
         profile = await _get_worker_profile(current_user.id, db)
         if item.worker_profile_id != profile.id:
             raise HTTPException(status_code=403, detail="Access denied.")
+    elif current_user.role not in {UserRole.assessor, UserRole.admin}:
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     # Remove stored file if any
     if item.stored_filename and item.storage_backend == "local":
@@ -401,6 +454,8 @@ async def download_evidence(
         profile = await _get_worker_profile(current_user.id, db)
         if item.worker_profile_id != profile.id:
             raise HTTPException(status_code=403, detail="Access denied.")
+    elif current_user.role not in {UserRole.assessor, UserRole.admin}:
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     if not item.stored_filename:
         raise HTTPException(status_code=404, detail="No file associated with this evidence item.")

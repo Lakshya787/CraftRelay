@@ -47,6 +47,7 @@ export function TextInput({
       ) : null}
 
       <View
+        testID="craftrelay-input"
         style={[
           styles.inputRow,
           focused && styles.inputFocused,

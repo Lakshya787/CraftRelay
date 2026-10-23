@@ -47,6 +47,7 @@ export function Button({
 
   return (
     <Pressable
+      testID="craftrelay-button"
       style={({ pressed }) => [
         styles.base,
         styles[variant],

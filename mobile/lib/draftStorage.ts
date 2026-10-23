@@ -12,9 +12,8 @@
  * Full assessment evaluation, scoring, and marketplace bookings require internet connectivity.
  */
 
-import { Platform } from "react-native";
-import * as SQLite from "expo-sqlite";
 import { apiClient, ApiError } from "./apiClient";
+import { getDraftsDatabase } from "./draftDatabase";
 
 export type DraftSyncStatus = "draft" | "syncing" | "synced" | "failed" | "conflict";
 
@@ -38,8 +37,8 @@ export interface EvidenceDraft {
   created_at: string;
 }
 
-let dbInstance: SQLite.SQLiteDatabase | null = null;
 const memoryStore = new Map<string, EvidenceDraft>();
+const activeSyncs = new Set<string>();
 
 function generateId(): string {
   return "draft-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
@@ -47,47 +46,6 @@ function generateId(): string {
 
 function generateIdempotencyKey(): string {
   return "idem-" + Date.now() + "-" + Math.random().toString(36).substring(2, 12);
-}
-
-/**
- * Initializes the SQLite database and creates the drafts table if needed.
- */
-export async function getDraftsDatabase(): Promise<SQLite.SQLiteDatabase | null> {
-  if (Platform.OS === "web") {
-    return null; // Uses memoryStore fallback on web
-  }
-  if (!dbInstance) {
-    try {
-      dbInstance = SQLite.openDatabaseSync("craftrelay_drafts.db");
-      await dbInstance.execAsync(`
-        CREATE TABLE IF NOT EXISTS evidence_drafts (
-          id TEXT PRIMARY KEY NOT NULL,
-          worker_id TEXT NOT NULL,
-          title TEXT NOT NULL,
-          description TEXT,
-          evidence_type TEXT NOT NULL,
-          file_uri TEXT,
-          file_name TEXT,
-          mime_type TEXT,
-          file_url TEXT,
-          criterion_id TEXT,
-          qualification_id TEXT,
-          sync_status TEXT NOT NULL,
-          sync_error TEXT,
-          idempotency_key TEXT UNIQUE NOT NULL,
-          server_evidence_id TEXT,
-          client_updated_at TEXT NOT NULL,
-          created_at TEXT NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS ix_evidence_drafts_worker ON evidence_drafts (worker_id);
-        CREATE INDEX IF NOT EXISTS ix_evidence_drafts_status ON evidence_drafts (sync_status);
-      `);
-    } catch (err) {
-      console.warn("[draftStorage] SQLite initialization fallback to memory store:", err);
-      return null;
-    }
-  }
-  return dbInstance;
 }
 
 /**
@@ -108,7 +66,13 @@ export async function saveDraft(input: {
 }): Promise<EvidenceDraft> {
   const now = new Date().toISOString();
   const id = input.id ?? generateId();
-  const idempotency_key = generateIdempotencyKey();
+  const existingDraft = input.id
+    ? (await listDrafts(input.worker_id)).find((d) => d.id === input.id)
+    : undefined;
+  const idempotency_key =
+    existingDraft && existingDraft.sync_status !== "synced"
+      ? existingDraft.idempotency_key
+      : generateIdempotencyKey();
 
   const draft: EvidenceDraft = {
     id,
@@ -148,6 +112,8 @@ export async function saveDraft(input: {
         file_url = excluded.file_url,
         criterion_id = excluded.criterion_id,
         qualification_id = excluded.qualification_id,
+        idempotency_key = excluded.idempotency_key,
+        server_evidence_id = NULL,
         sync_status = 'draft',
         sync_error = NULL,
         client_updated_at = excluded.client_updated_at;`,
@@ -253,18 +219,19 @@ export async function syncDraftWithServer(
   onProgress?: (percent: number) => void
 ): Promise<{ success: boolean; evidenceId?: string; error?: string; isConflict?: boolean }> {
   // 1. Guard against duplicate submissions if already syncing or synced
-  if (draft.sync_status === "syncing") {
+  if (draft.sync_status === "syncing" || activeSyncs.has(draft.id)) {
     return { success: false, error: "Synchronization is already in progress for this draft." };
   }
   if (draft.sync_status === "synced" && draft.server_evidence_id) {
     return { success: true, evidenceId: draft.server_evidence_id };
   }
 
-  // Mark as syncing
-  await updateDraftState(draft.id, "syncing", null);
-  if (onProgress) onProgress(10);
-
+  activeSyncs.add(draft.id);
   try {
+    // Mark as syncing only after acquiring the in-memory lock.
+    await updateDraftState(draft.id, "syncing", null);
+    if (onProgress) onProgress(10);
+
     let resultEvidenceId: string;
 
     if (draft.file_url) {
@@ -276,7 +243,7 @@ export async function syncDraftWithServer(
         url: draft.file_url,
         evidence_type: draft.evidence_type,
         criterion_id: draft.criterion_id || undefined,
-      });
+      }, { headers: { "Idempotency-Key": draft.idempotency_key } });
       resultEvidenceId = res.id;
     } else if (draft.file_uri) {
       // Multipart File upload
@@ -302,7 +269,8 @@ export async function syncDraftWithServer(
         formData,
         (percent) => {
           if (onProgress) onProgress(30 + Math.round(percent * 0.6));
-        }
+        },
+        { "Idempotency-Key": draft.idempotency_key }
       );
       resultEvidenceId = res.id;
     } else {
@@ -317,8 +285,9 @@ export async function syncDraftWithServer(
       err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Synchronization failed";
 
     // Detect server conflict (e.g. 409 Conflict or 422 Unprocessable)
-    const isConflict =
-      err instanceof ApiError && (err.status === 409 || err.status === 422);
+    // 422 is a correctable validation error. Only a server conflict should
+    // block retry pending user action.
+    const isConflict = err instanceof ApiError && err.status === 409;
 
     const newStatus: DraftSyncStatus = isConflict ? "conflict" : "failed";
     await updateDraftState(draft.id, newStatus, errorMsg);
@@ -328,5 +297,7 @@ export async function syncDraftWithServer(
       error: errorMsg,
       isConflict,
     };
+  } finally {
+    activeSyncs.delete(draft.id);
   }
 }

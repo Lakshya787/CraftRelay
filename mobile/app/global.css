@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Patrick+Hand&display=swap');
+
+:root {
+  color-scheme: light;
+  background: #fdfbf7;
+  color: #2d2d2d;
+  font-family: 'Patrick Hand', 'Comic Sans MS', cursive;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: #fdfbf7;
+}
+
+body {
+  margin: 0;
+  background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: #2d2d2d;
+  font-family: 'Patrick Hand', 'Comic Sans MS', cursive;
+  font-size: 18px;
+}
+
+#root,
+#root * {
+  font-family: 'Patrick Hand', 'Comic Sans MS', cursive;
+}
+
+#root [role='heading'],
+#root h1,
+#root h2,
+#root h3 {
+  font-family: 'Kalam', 'Comic Sans MS', cursive !important;
+}
+
+#root [data-testid='craftrelay-card'] {
+  border: 2px solid #2d2d2d !important;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px !important;
+  box-shadow: 3px 3px 0 #2d2d2d !important;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+#root [data-testid='craftrelay-card']:hover {
+  transform: rotate(-0.25deg);
+}
+
+#root [data-testid='craftrelay-button'] {
+  min-height: 48px;
+  border: 3px solid #2d2d2d !important;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px !important;
+  box-shadow: 4px 4px 0 #2d2d2d !important;
+  transition: transform 100ms ease, box-shadow 100ms ease, background-color 100ms ease;
+}
+
+#root [data-testid='craftrelay-button']:hover:not([aria-disabled='true']) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #2d2d2d !important;
+  background-color: #ff4d4d !important;
+}
+
+#root [data-testid='craftrelay-button']:active:not([aria-disabled='true']) {
+  transform: translate(4px, 4px);
+  box-shadow: none !important;
+}
+
+#root [data-testid='craftrelay-input'] {
+  border: 2px solid #2d2d2d;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+#root input,
+#root textarea {
+  font-family: 'Patrick Hand', 'Comic Sans MS', cursive !important;
+  font-size: 17px;
+}
+
+@media (max-width: 640px) {
+  body { font-size: 17px; }
+  #root [data-testid='craftrelay-card'] { box-shadow: 2px 2px 0 #2d2d2d !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

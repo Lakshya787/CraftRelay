@@ -9,7 +9,7 @@
  * recorded by an authorised assessor.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -77,6 +77,9 @@ export default function AssessmentScreen() {
     null
   );
   const [actionError, setActionError] = useState<string | null>(null);
+  const activeCaseId = selectedCaseId ?? cases[0]?.id ?? null;
+  const activeQualificationId =
+    selectedQualificationId ?? cases[0]?.qualification_id ?? null;
 
   const {
     workspace,
@@ -84,32 +87,24 @@ export default function AssessmentScreen() {
     error: workspaceError,
     refetch: refetchWorkspace,
     setWorkspace,
-  } = useAssessmentWorkspace(selectedCaseId);
+  } = useAssessmentWorkspace(activeCaseId);
 
   const { openCase, opening, error: openError } = useOpenAssessmentCase();
   const { submit, submitting, error: submitError } = useSubmitAssessmentCase(
-    selectedCaseId ?? ""
+    activeCaseId ?? ""
   );
   const {
     suggestions,
     loading: suggestionsLoading,
     error: suggestionsError,
     load: loadSuggestions,
-  } = useMappingSuggestions(selectedCaseId ?? "");
+  } = useMappingSuggestions(activeCaseId ?? "");
   const { link, linking, error: mappingError } = useCreateMapping(
-    selectedCaseId ?? ""
+    activeCaseId ?? ""
   );
 
   const [refreshing, setRefreshing] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // Open the most recent case automatically once the list loads.
-  useEffect(() => {
-    if (!selectedCaseId && cases.length > 0) {
-      setSelectedCaseId(cases[0].id);
-      setSelectedQualificationId(cases[0].qualification_id);
-    }
-  }, [cases, selectedCaseId]);
 
   const qualificationsById = useMemo(
     () => new Map(qualifications.map((q) => [q.id, q])),
@@ -201,7 +196,7 @@ export default function AssessmentScreen() {
           contentContainerStyle={styles.chipRow}
         >
           {qualifications.map((qualification) => {
-            const active = qualification.id === selectedQualificationId;
+            const active = qualification.id === activeQualificationId;
             return (
               <Pressable
                 key={qualification.id}

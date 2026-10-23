@@ -16,11 +16,9 @@ import * as SecureStore from "expo-secure-store";
 
 export const TOKEN_KEY = "craftrelay_access_token";
 
-const DEFAULT_BASE_URL = "http://10.0.2.2:8000/api/v1"; // Android emulator → host
-const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_BASE_URL).replace(
-  /\/+$/,
-  ""
-);
+// The API host is always supplied by the build/runtime environment. In
+// particular, release builds must never silently fall back to a dev host.
+const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
@@ -78,6 +76,12 @@ export class ApiError extends Error {
 
 function buildUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
+  if (!BASE_URL) {
+    throw new ApiError("CraftRelay is not configured with an API address. Contact the demo team.", 0);
+  }
+  if (!__DEV__ && !BASE_URL.startsWith("https://")) {
+    throw new ApiError("CraftRelay requires a secure API connection. Contact the demo team.", 0);
+  }
   return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -244,13 +248,15 @@ export const apiClient = {
   async upload<T>(
     path: string,
     formData: FormData,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    headers?: Record<string, string>
   ): Promise<T> {
     // React Native's fetch does not expose upload progress. Show indeterminate
     // progress via the callback contract so callers keep a single API.
     onProgress?.(0);
     const result = await unwrap<T>("POST", path, {
       formData,
+      headers,
       timeoutMs: UPLOAD_TIMEOUT_MS,
     });
     onProgress?.(100);

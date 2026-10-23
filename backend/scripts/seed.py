@@ -10,8 +10,9 @@ They do NOT represent official government, NCVT, or any other awarding-body
 standards.  Every qualification is saved with ``is_illustrative=True`` to
 allow clients to display an appropriate disclaimer.
 
-Demo accounts (password is the same for all: "Demo1234!")
-──────────────────────────────────────────────────────────
+Demo account passwords are supplied through CRAFTRELAY_DEMO_PASSWORD.
+Never run this development seed against production.
+──────────────────────────────────────────────────────────────────────────
   worker@craftrelay.dev    — Worker   (Riya Sharma, Electrician)
   assessor@craftrelay.dev  — Assessor (Vikram Nair)
   customer@craftrelay.dev  — Customer (Ananya Patel)
@@ -20,6 +21,7 @@ Demo accounts (password is the same for all: "Demo1234!")
 Usage
 ─────
   cd backend
+  $env:CRAFTRELAY_DEMO_PASSWORD = "<strong temporary demo password>"
   python scripts/seed.py
 
 Run AFTER alembic upgrade head.
@@ -43,7 +45,7 @@ from app.models.user import User, UserRole
 from app.models.worker_profile import WorkerProfile
 from app.models.worker_skill import ProficiencyLevel, WorkerSkill
 
-DEMO_PASSWORD_HASH = hash_password("Demo1234!")
+DEMO_PASSWORD_HASH = None
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -300,6 +302,14 @@ def _get_or_create_user(session, data: dict) -> User:
         )
         session.add(user)
         session.flush()
+    else:
+        # Rotate demo credentials to the runtime-supplied value on every seed.
+        # This also removes the old checked-in shared password from existing DBs.
+        user.password_hash = DEMO_PASSWORD_HASH
+        user.full_name = data["full_name"]
+        user.role = data["role"]
+        user.is_verified = data.get("is_verified", False)
+        user.is_active = True
     return user
 
 
@@ -339,6 +349,13 @@ def _get_or_create_qualification(session, data: dict) -> Qualification:
 
 
 def seed() -> None:
+    if os.getenv("APP_ENV", "development").lower() == "production":
+        raise RuntimeError("Demo seed is disabled when APP_ENV=production.")
+    demo_password = os.getenv("CRAFTRELAY_DEMO_PASSWORD", "")
+    if len(demo_password) < 12:
+        raise RuntimeError("Set CRAFTRELAY_DEMO_PASSWORD to a temporary password of at least 12 characters.")
+    global DEMO_PASSWORD_HASH
+    DEMO_PASSWORD_HASH = hash_password(demo_password)
     with SyncSessionLocal() as session:
         print("🌱  Seeding demo users …")
         users = {}
@@ -476,7 +493,7 @@ def seed() -> None:
         session.commit()
         print("✅  Seed complete.")
         print()
-        print("Demo accounts (password: Demo1234!)")
+        print("Demo accounts were seeded. Passwords are supplied via CRAFTRELAY_DEMO_PASSWORD.")
         print("  worker@craftrelay.dev    — Worker   (Riya Sharma)")
         print("  assessor@craftrelay.dev  — Assessor (Vikram Nair)")
         print("  customer@craftrelay.dev  — Customer (Ananya Patel)")

@@ -16,6 +16,7 @@ import {
 import { Colors } from "../../constants/colors";
 import { Spacing, Radius } from "../../constants/spacing";
 import { MOCK_USERS } from "../../data/mockData";
+import { IllustrativeDataNotice } from "../../components/shared/IllustrativeDataNotice";
 import type { UserRole } from "../../types/domain";
 import { Card } from "../../components/ui/Card";
 import { Avatar } from "../../components/ui/Avatar";
@@ -23,7 +24,7 @@ import { Badge } from "../../components/ui/Badge";
 import { TextInput } from "../../components/ui/TextInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 
-const ROLE_FILTERS: Array<{ label: string; value: UserRole | "all" }> = [
+const ROLE_FILTERS: { label: string; value: UserRole | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Workers", value: "worker" },
   { label: "Assessors", value: "assessor" },
@@ -64,6 +65,7 @@ export default function AdminUsersScreen() {
 
   return (
     <View style={styles.container}>
+      <IllustrativeDataNotice />
       {/* Search */}
       <View style={styles.searchSection}>
         <TextInput

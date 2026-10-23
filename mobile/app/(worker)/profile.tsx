@@ -418,7 +418,7 @@ export default function WorkerProfileScreen() {
                 <Text style={styles.bioText}>{profile.bio}</Text>
               ) : (
                 <Text style={styles.emptyHint}>
-                  Tap "Edit" to add your bio and location.
+                  Tap &quot;Edit&quot; to add your bio and location.
                 </Text>
               )}
             </View>
@@ -441,7 +441,7 @@ export default function WorkerProfileScreen() {
             <View style={styles.emptySkills}>
               <Text style={styles.emptySkillsIcon}>🛠</Text>
               <Text style={styles.emptySkillsText}>
-                No skills declared yet. Tap "+ Add" to declare your skills.
+                No skills declared yet. Tap &quot;+ Add&quot; to declare your skills.
               </Text>
             </View>
           ) : (
