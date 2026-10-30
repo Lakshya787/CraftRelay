@@ -627,8 +627,8 @@ const styles = StyleSheet.create({
   },
   introText: {
     fontSize: 13,
-    lineHeight: 20,
-    color: "#CBD5E1",
+    lineHeight: 21,                    // 13 × 1.6 body-leading
+    color: Colors.textInverseSecondary, // --dp-color-on-field-secondary: #d0d4dd
   },
   sectionLabel: {
     fontSize: 13,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   chipSubActive: {
-    color: "#DBEAFE",
+    color: Colors.textInverseSecondary,   // --dp-color-on-field-secondary: #d0d4dd
   },
   errorBanner: {
     backgroundColor: Colors.errorBg,

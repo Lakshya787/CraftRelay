@@ -32,38 +32,38 @@ export const STATUS_CONFIG: Record<
 > = {
   requested: {
     label: "Awaiting Response",
-    color: "#0284C7", // blue
-    bg: "#E0F2FE",
+    color: Colors.info,           // #0284C7
+    bg: Colors.infoBg,            // #E0F2FE
   },
   accepted: {
     label: "Accepted",
-    color: "#0F4C81", // navy
-    bg: "#E8F0FB",
+    color: Colors.primary,        // #074ce0 — accent blue
+    bg: "#e8eef9",                // accent-tinted pale blue
   },
   declined: {
     label: "Declined",
-    color: "#DC2626", // red
-    bg: "#FEE2E2",
+    color: Colors.error,          // #DC2626
+    bg: Colors.errorBg,           // #FEE2E2
   },
   in_progress: {
     label: "In Progress",
-    color: "#D97706", // amber
-    bg: "#FEF3C7",
+    color: Colors.warning,        // #D97706
+    bg: Colors.warningBg,         // #FEF3C7
   },
   completion_pending: {
     label: "Awaiting Confirmation",
-    color: "#7C3AED", // purple
+    color: Colors.roleAssessor,   // #7C3AED — preserved role color
     bg: "#EDE9FE",
   },
   completed: {
     label: "Completed",
-    color: "#16A34A", // green
-    bg: "#DCFCE7",
+    color: Colors.success,        // #16A34A
+    bg: Colors.successBg,         // #DCFCE7
   },
   cancelled: {
     label: "Cancelled",
-    color: "#6B7280", // grey
-    bg: "#F3F4F6",
+    color: Colors.textMuted,      // #9da5b4
+    bg: Colors.backgroundMuted,   // #f3f4f6
   },
 };
 
