@@ -1,5 +1,14 @@
 /**
  * components/ui/TextInput.tsx — Reusable text input component.
+ *
+ * Visual style (design system):
+ *   - White panel background
+ *   - 1 px hairline border (rule color) at rest
+ *   - Accent border + soft blue shadow on focus
+ *   - Error border in error red
+ *   - Labels: 14 px medium (Instrument Sans scale)
+ *   - Input text: 15 px (interface scale)
+ *   - Helper / error captions: 12–13 px (label / metadata scale)
  */
 
 import React, { useState } from "react";
@@ -8,7 +17,6 @@ import {
   TextInput as RNTextInput,
   Text,
   StyleSheet,
-  Pressable,
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
@@ -57,7 +65,11 @@ export function TextInput({
         {leftIcon ? <View style={styles.iconLeft}>{leftIcon}</View> : null}
 
         <RNTextInput
-          style={[styles.input, leftIcon ? styles.inputWithLeft : null, rightIcon ? styles.inputWithRight : null]}
+          style={[
+            styles.input,
+            leftIcon ? styles.inputWithLeft : null,
+            rightIcon ? styles.inputWithRight : null,
+          ]}
           placeholderTextColor={Colors.textMuted}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -79,7 +91,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   label: {
-    fontSize: 14,
+    fontSize: 14,           // --dp-typography-small
     fontWeight: "500",
     color: Colors.textPrimary,
   },
@@ -89,18 +101,18 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.backgroundCard,
+    backgroundColor: Colors.backgroundCard,  // --dp-color-panel
     borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: 1,                          // --dp-border-hairline
+    borderColor: Colors.border,              // --dp-color-rule at rest
     minHeight: 50,
   },
   inputFocused: {
-    borderColor: Colors.borderFocus,
+    borderColor: Colors.borderFocus,         // --dp-color-accent on focus
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
     elevation: 2,
   },
   inputError: {
@@ -114,7 +126,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 15,            // --dp-typography-interface
     color: Colors.textPrimary,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
@@ -126,12 +138,12 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   errorText: {
-    fontSize: 12,
+    fontSize: 12,            // --dp-typography-label
     color: Colors.error,
     fontWeight: "500",
   },
   hintText: {
-    fontSize: 12,
+    fontSize: 12,            // --dp-typography-label
     color: Colors.textMuted,
   },
 });

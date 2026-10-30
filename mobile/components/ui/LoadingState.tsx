@@ -1,5 +1,8 @@
 /**
  * components/ui/LoadingState.tsx — Loading spinner with optional message.
+ *
+ * Spinner uses the accent color; message uses ink-secondary.
+ * Background on full-screen mode matches the ground token.
  */
 
 import React from "react";
@@ -30,10 +33,10 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background,   // --dp-color-ground: #fcfcfd
   },
   message: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 14,                          // --dp-typography-small
+    color: Colors.textSecondary,           // --dp-color-ink-secondary
   },
 });

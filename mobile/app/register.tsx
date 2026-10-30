@@ -212,7 +212,7 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1, backgroundColor: Colors.background },    // --dp-color-ground
   container: {
     padding: Spacing["2xl"],
     gap: Spacing.xl,
@@ -221,11 +221,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "800",
-    color: Colors.textPrimary,
+    color: Colors.textPrimary,            // --dp-color-ink: #16191f
+    letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 14,                         // --dp-typography-small
+    color: Colors.textSecondary,          // --dp-color-ink-secondary
     marginTop: -Spacing.md,
   },
   roleSection: {
@@ -246,15 +247,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: Spacing.xs,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderRadius: Radius.lg,              // --dp-radius-panel: 12px
+    borderWidth: 1,                       // --dp-border-hairline
+    borderColor: Colors.border,           // --dp-color-rule
     paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.md,
   },
   roleBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: "#E8F0FB",
+    borderColor: Colors.primary,          // --dp-color-accent: #074ce0
+    backgroundColor: "#e8eef9",          // subtle blue tint of accent
   },
   roleIcon: {
     fontSize: 28,
@@ -271,10 +272,10 @@ const styles = StyleSheet.create({
     gap: Spacing.base,
   },
   terms: {
-    fontSize: 12,
+    fontSize: 12,                         // --dp-typography-label
     color: Colors.textMuted,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 19,
   },
   termsLink: {
     color: Colors.primary,
@@ -306,12 +307,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "800",
     color: Colors.textPrimary,
+    letterSpacing: -0.3,
   },
   successMessage: {
     fontSize: 14,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: 21,
+    lineHeight: 22,                       // 14 × 1.6 body-leading
     marginBottom: Spacing.sm,
   },
 });

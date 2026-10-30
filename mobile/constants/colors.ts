@@ -1,76 +1,86 @@
 /**
- * constants/colors.ts — CraftRelay design token colours.
+ * constants/colors.ts — Design tokens aligned with the CraftRelay design system.
  *
- * Updated for Part 2: Navy and teal professional identity.
- * Consuming components import from here so colour changes
- * only need to happen in one place.
+ * Ground / ink / accent palette replaces the old navy+teal brand for consistency.
+ * Role accent colors are preserved for tab bars and role-specific UI.
+ * Status colors remain functional (success, warning, error, info).
  */
 
-import { Platform } from "react-native";
-
-const webPalette = Platform.OS === "web";
-
 export const Colors = {
-  // ── Brand — Navy + Teal ────────────────────────────────────────────────────
-  primary: webPalette ? "#ff4d4d" : "#0F4C81",
-  primaryDark: webPalette ? "#df3838" : "#0A3561",
-  primaryLight: webPalette ? "#ff7777" : "#1A6DB5",
-  teal: webPalette ? "#2d5da1" : "#0D9488",
-  tealLight: webPalette ? "#527bb2" : "#14B8A6",
-  tealDark: webPalette ? "#204a84" : "#0F766E",
+  // ── Core surface & text ──────────────────────────────────────────────────
+  /** Near-white page ground */
+  background: "#fcfcfd",
+  /** White card / panel surface */
+  backgroundCard: "#ffffff",
+  /** Pale grey shared field (section backgrounds, muted areas) */
+  backgroundMuted: "#f3f4f6",
+  /** Dark field background (dark sections, footers) */
+  backgroundDark: "#16191f",
 
-  // ── Background ─────────────────────────────────────────────────────────────
-  background: webPalette ? "#fdfbf7" : "#F7F9FC",
-  backgroundCard: "#FFFFFF",
-  backgroundMuted: webPalette ? "#e5e0d8" : "#EEF2F7",
-  backgroundDark: webPalette ? "#2d2d2d" : "#0C2D4E",
+  // ── Ink (text) ────────────────────────────────────────────────────────────
+  /** Primary ink — dark display and body text */
+  textPrimary: "#16191f",
+  /** Secondary ink — supporting / metadata text */
+  textSecondary: "#454c58",
+  /** Muted / placeholder text */
+  textMuted: "#9da5b4",
+  /** Text on dark field backgrounds */
+  textInverse: "#fcfcfd",
+  /** Secondary text on dark field backgrounds */
+  textInverseSecondary: "#d0d4dd",
+  /** Link / action text */
+  textLink: "#074ce0",
 
-  // ── Text ───────────────────────────────────────────────────────────────────
-  textPrimary: webPalette ? "#2d2d2d" : "#0F172A",
-  textSecondary: webPalette ? "#55504a" : "#4B5563",
-  textMuted: "#9CA3AF",      // Gray 400 — placeholder / disabled
-  textInverse: "#FFFFFF",    // White — on dark surfaces
-  textLink: webPalette ? "#2d5da1" : "#0F4C81",
+  // ── Accent (electric blue) ────────────────────────────────────────────────
+  /** Primary action / accent — electric blue */
+  primary: "#074ce0",
+  primaryDark: "#053cb5",
+  primaryLight: "#3a6fec",
+  /** Text on accent background */
+  onAccent: "#ffffff",
 
-  // ── Border & Dividers ──────────────────────────────────────────────────────
-  border: webPalette ? "#2d2d2d" : "#D1D9E6",
-  borderFocus: webPalette ? "#2d5da1" : "#0F4C81",
-  divider: webPalette ? "#e5e0d8" : "#E5EAF2",
+  // ── Rule / border ─────────────────────────────────────────────────────────
+  border: "#dde0e6",
+  borderFocus: "#074ce0",
+  divider: "#dde0e6",
 
-  // ── Status ─────────────────────────────────────────────────────────────────
-  success: webPalette ? "#2d5da1" : "#16A34A",
-  successBg: "#DCFCE7",    // Green 100
-  warning: webPalette ? "#b98200" : "#D97706",
-  warningBg: "#FEF3C7",    // Amber 100
-  error: webPalette ? "#ff4d4d" : "#DC2626",
-  errorBg: "#FEE2E2",      // Red 100
-  info: "#0284C7",         // Sky 600
-  infoBg: "#E0F2FE",       // Sky 100
+  // ── Role accent colors (preserved for tab bar & role badge) ───────────────
+  roleWorker: "#074ce0",
+  roleAssessor: "#7C3AED",
+  roleCustomer: "#0D9488",
+  roleAdmin: "#D97706",
 
-  // ── Roles ──────────────────────────────────────────────────────────────────
-  roleWorker: webPalette ? "#2d5da1" : "#0F4C81",
-  roleAssessor: webPalette ? "#ff4d4d" : "#7C3AED",
-  roleCustomer: webPalette ? "#2d5da1" : "#0D9488",
-  roleAdmin: webPalette ? "#b98200" : "#D97706",
+  // ── Status ────────────────────────────────────────────────────────────────
+  success: "#16A34A",
+  successBg: "#DCFCE7",
+  warning: "#D97706",
+  warningBg: "#FEF3C7",
+  error: "#DC2626",
+  errorBg: "#FEE2E2",
+  info: "#0284C7",
+  infoBg: "#E0F2FE",
 
-  // ── Neutral ────────────────────────────────────────────────────────────────
-  white: "#FFFFFF",
+  // ── Neutrals ──────────────────────────────────────────────────────────────
+  white: "#ffffff",
   black: "#000000",
-  gray50: "#F9FAFB",
-  gray100: "#F3F4F6",
-  gray200: "#E5E7EB",
-  gray300: "#D1D5DB",
-  gray400: "#9CA3AF",
-  gray500: "#6B7280",
-  gray600: "#4B5563",
+  gray50: "#f9fafb",
+  gray100: "#f3f4f6",
+  gray200: "#e5e7eb",
+  gray300: "#d1d5db",
+  gray400: "#9ca3af",
+  gray500: "#6b7280",
+  gray600: "#4b5563",
   gray700: "#374151",
-  gray800: "#1F2937",
+  gray800: "#1f2937",
   gray900: "#111827",
 
-  // ── Tab bar ────────────────────────────────────────────────────────────────
-  tabBarBackground: webPalette ? "#fffdf8" : "#FFFFFF",
-  tabBarActive: webPalette ? "#ff4d4d" : "#0F4C81",
-  tabBarInactive: "#9CA3AF",
-} as const;
+  // ── Tab bar ───────────────────────────────────────────────────────────────
+  tabBarBackground: "#ffffff",
+  tabBarActive: "#074ce0",
+  tabBarInactive: "#9da5b4",
 
-export type ColorKey = keyof typeof Colors;
+  // ── Legacy aliases (kept so existing screens compile unchanged) ───────────
+  teal: "#0D9488",
+  tealLight: "#14B8A6",
+  tealDark: "#0F766E",
+} as const;

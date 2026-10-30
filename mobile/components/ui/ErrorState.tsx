@@ -1,5 +1,8 @@
 /**
  * components/ui/ErrorState.tsx — Error / failure state with retry.
+ *
+ * Title uses ink (primary text); message uses ink-secondary.
+ * Retry button uses the outline variant (accent border, no fill).
  */
 
 import React from "react";
@@ -42,13 +45,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: Colors.textPrimary,       // --dp-color-ink
     textAlign: "center",
   },
   message: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 14,                    // --dp-typography-small
+    color: Colors.textSecondary,     // --dp-color-ink-secondary
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,                  // 14 × 1.6 body-leading
   },
 });

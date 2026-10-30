@@ -133,7 +133,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1, backgroundColor: Colors.background },   // --dp-color-ground
   container: {
     padding: Spacing["2xl"],
     gap: Spacing.xl,
@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
   logoMark: {
     width: 56,
     height: 56,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,              // --dp-radius-panel: 12px
+    backgroundColor: Colors.primary,      // --dp-color-accent: #074ce0
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
@@ -162,15 +162,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "800",
-    color: Colors.textPrimary,
+    color: Colors.textPrimary,            // --dp-color-ink: #16191f
+    letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 14,                         // --dp-typography-small
+    color: Colors.textSecondary,          // --dp-color-ink-secondary
   },
   demoNote: {
     backgroundColor: Colors.infoBg,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     padding: Spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: Colors.info,
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   demoNoteText: {
     fontSize: 13,
     color: Colors.info,
-    lineHeight: 19,
+    lineHeight: 21,
   },
   section: {
     gap: Spacing.sm,
@@ -196,8 +197,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
+    borderRadius: Radius.lg,              // --dp-radius-panel
+    borderWidth: 1,                       // --dp-border-hairline
     borderColor: Colors.border,
     padding: Spacing.md,
   },
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   roleDesc: {
-    fontSize: 12,
+    fontSize: 12,                         // --dp-typography-label
     color: Colors.textSecondary,
   },
   form: {
@@ -236,19 +237,19 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.sm,
   },
   forgotText: {
-    fontSize: 13,
+    fontSize: 13,                         // --dp-typography-metadata
     color: Colors.primary,
     fontWeight: "500",
   },
   authError: {
     backgroundColor: Colors.errorBg,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     padding: Spacing.md,
   },
   authErrorText: {
     fontSize: 13,
     color: Colors.error,
-    lineHeight: 19,
+    lineHeight: 21,
   },
   submitBtn: {
     marginTop: Spacing.sm,

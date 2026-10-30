@@ -1,5 +1,8 @@
 /**
  * components/ui/Avatar.tsx — User avatar with initials fallback.
+ *
+ * Uses accent color (#074ce0) as the default background, matching the
+ * design system primary action color.
  */
 
 import React from "react";
@@ -41,7 +44,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   initials: {
-    color: Colors.white,
+    color: Colors.white,        // --dp-color-on-accent: #ffffff
     fontWeight: "700",
     letterSpacing: 0.5,
   },

@@ -106,7 +106,7 @@ export default function LandingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background,   // --dp-color-ground: #fcfcfd
     paddingTop: Spacing["3xl"],
   },
   logoRow: {
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
   logoMark: {
     width: 44,
     height: 44,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,              // --dp-radius-panel: 12px
+    backgroundColor: Colors.primary,      // --dp-color-accent: #074ce0
     alignItems: "center",
     justifyContent: "center",
   },
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
   logoName: {
     fontSize: 22,
     fontWeight: "800",
-    color: Colors.textPrimary,
-    letterSpacing: -0.5,
+    color: Colors.textPrimary,            // --dp-color-ink: #16191f
+    letterSpacing: -0.6,                  // display tight tracking
   },
   carousel: {
     flexGrow: 0,
@@ -152,15 +152,16 @@ const styles = StyleSheet.create({
   slideTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: Colors.textPrimary,
+    color: Colors.textPrimary,            // --dp-color-ink
     textAlign: "center",
-    lineHeight: 36,
+    lineHeight: 34,                       // 28 × tight 1.2
+    letterSpacing: -0.4,
   },
   slideSubtitle: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: Colors.textSecondary,          // --dp-color-ink-secondary: #454c58
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 26,                       // 16 × relaxed 1.6
   },
   dots: {
     flexDirection: "row",
@@ -172,11 +173,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.divider,      // --dp-color-rule: #dde0e6
   },
   dotActive: {
     width: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary,     // --dp-color-accent
   },
   actions: {
     paddingHorizontal: Spacing["2xl"],

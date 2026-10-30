@@ -16,10 +16,17 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
+          // White panel header — matches --dp-color-panel
           headerStyle: { backgroundColor: Colors.backgroundCard },
-          headerTintColor: Colors.textPrimary,
-          headerTitleStyle: { fontWeight: "700", fontSize: 17, color: Colors.textPrimary },
+          // Hairline separator instead of shadow
           headerShadowVisible: false,
+          headerTintColor: Colors.primary,             // back-arrow in accent blue
+          headerTitleStyle: {
+            fontWeight: "700",
+            fontSize: 17,
+            color: Colors.textPrimary,                 // --dp-color-ink
+          },
+          // Ground colour fills the screen content area
           contentStyle: { backgroundColor: Colors.background },
           headerBackTitle: "Back",
         }}
